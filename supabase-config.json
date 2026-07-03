@@ -1,0 +1,6 @@
+{
+  "supabaseUrl": "https://YOUR_PROJECT.supabase.co",
+  "supabaseAnonKey": "YOUR_ANON_KEY",
+  "siteName": "昭州中学校园网",
+  "categories": ["日常", "食堂", "学习", "社团", "八卦", "公告", "求助"]
+}
