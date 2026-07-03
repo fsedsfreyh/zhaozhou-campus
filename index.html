@@ -3,149 +3,216 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>昭州中学校园网</title>
+  <title>昭州校园社区</title>
   <link rel="stylesheet" href="css/style.css">
-  <!-- Supabase JS SDK -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <style>
-    /* 配置提示 - 部署前请修改 */
-    .config-notice {
-      display: none;
-      background: #fff3cd;
-      border: 1px solid #ffc107;
-      color: #856404;
-      padding: 12px 16px;
-      border-radius: var(--radius-sm);
-      margin-bottom: 16px;
-      font-size: 0.85rem;
-    }
-    .config-notice.show { display: block; }
-  </style>
 </head>
 <body>
+  <!-- ======== 校园背景 ======== -->
+  <div class="bg-wrapper" id="bgWrapper">
+    <img id="campusBg" class="campus-bg" src="images/school-bg.jpg" alt="昭州中学">
+    <div class="bg-overlay" id="bgOverlay"></div>
+  </div>
 
-  <!-- ======== 学校背景图 ======== -->
-  <img id="schoolBg" class="school-bg" src="images/school-bg.jpg" alt="昭州中学">
-  <div class="school-bg-overlay"></div>
-
-  <!-- ======== 顶部导航 ======== -->
-  <nav class="nav">
+  <!-- ======== 导航栏 ======== -->
+  <nav class="navbar glass" id="navbar">
     <div class="nav-inner">
-      <a class="nav-logo" href="#/" onclick="navigate('#/')">
-        <span class="nav-logo-icon">昭</span>
-        昭州校园
+      <a class="nav-brand" href="#/" onclick="router.navigate('#/')">
+        <span class="nav-brand-icon">🏫</span>
+        <span class="nav-brand-text">昭州校园</span>
       </a>
       <div class="nav-actions" id="navActions">
-        <button class="nav-btn" onclick="navigate('#/')">首页</button>
-        <button class="nav-btn nav-btn-primary" id="navLoginBtn" onclick="navigate('#/login')">登录</button>
-        <button class="nav-btn" id="navProfileBtn" onclick="navigate('#/profile')" style="display:none">我的</button>
-        <button class="nav-btn" id="navLogoutBtn" onclick="logoutUser()" style="display:none">退出</button>
+        <button class="nav-link" onclick="router.navigate('#/')">首页</button>
+        <button class="nav-link" id="navAdmin" onclick="router.navigate('#/admin')" style="display:none">管理</button>
+        <button class="nav-link nav-login" id="navLoginBtn" onclick="router.navigate('#/login')">登录</button>
+        <div class="nav-user" id="navUserMenu" style="display:none">
+          <button class="nav-avatar-btn" id="navAvatarBtn" onclick="router.navigate('#/profile')">
+            <span id="navAvatar" class="avatar-small"></span>
+          </button>
+        </div>
       </div>
     </div>
   </nav>
 
-  <!-- ======== 页面：首页 ======== -->
-  <div class="page active" id="page-home">
-    <!-- 分类导航 -->
-    <div class="category-nav" id="categoryNav">
-      <button class="category-chip active" data-category="all" onclick="filterByCategory('all')">全部</button>
-      <button class="category-chip" data-category="日常" onclick="filterByCategory('日常')">日常</button>
-      <button class="category-chip" data-category="食堂" onclick="filterByCategory('食堂')">食堂</button>
-      <button class="category-chip" data-category="学习" onclick="filterByCategory('学习')">学习</button>
-      <button class="category-chip" data-category="社团" onclick="filterByCategory('社团')">社团</button>
-      <button class="category-chip" data-category="八卦" onclick="filterByCategory('八卦')">八卦</button>
-      <button class="category-chip" data-category="公告" onclick="filterByCategory('公告')">公告</button>
-      <button class="category-chip" data-category="求助" onclick="filterByCategory('求助')">求助</button>
-    </div>
-    <!-- 帖子列表 -->
-    <div id="postFeed">
-      <div class="loading"><div class="loading-spinner"></div>加载中...</div>
-    </div>
-  </div>
+  <!-- ======== 页面容器 ======== -->
+  <main id="app">
+    <!-- 首页 -->
+    <div class="page" id="page-home">
+      <section class="hero-section" id="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-content">
+          <div class="hero-badge">🏫 昭州中学校内专属社区</div>
+          <h1 class="hero-title">昭州校园社区</h1>
+          <p class="hero-subtitle">分享校园生活 · 发现身边故事 · 连接每一个昭州人</p>
+          <div class="hero-search">
+            <span class="hero-search-icon">🔍</span>
+            <input class="hero-search-input" id="heroSearch" type="text" placeholder="搜索帖子、话题、关键词..." onkeydown="if(event.key==='Enter'){const v=this.value.trim();if(v)router.navigate('#/search/'+encodeURIComponent(v))}">
+          </div>
+          <button class="hero-cta" onclick="handleCreateClick()">
+            <span>✏️</span> 发布动态
+          </button>
+        </div>
+      </section>
 
-  <!-- ======== 页面：帖子详情 ======== -->
-  <div class="page" id="page-post-detail">
-    <div id="postDetailContainer">
-      <div class="loading"><div class="loading-spinner"></div>加载中...</div>
-    </div>
-  </div>
+      <div class="home-content">
+        <!-- 公告轮播 -->
+        <div class="announcement-bar" id="announcementBar">
+          <span class="announcement-icon">📢</span>
+          <div class="announcement-track" id="announcementTrack">
+            <span class="announcement-text">加载中...</span>
+          </div>
+        </div>
 
-  <!-- ======== 页面：发帖 ======== -->
-  <div class="page form-page" id="page-create-post">
-    <div class="form-card">
-      <div class="form-title">发布动态</div>
-      <div class="form-subtitle">分享你在昭州中学的日常</div>
-      <div id="createPostForm">
+        <!-- 板块导航 -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">📂 社区板块</h2>
+          </div>
+          <div class="board-grid" id="boardGrid"></div>
+        </section>
+
+        <!-- 热帖榜单 -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">🔥 今日热帖</h2>
+            <div class="tab-group">
+              <button class="tab active" data-tab="daily" onclick="switchHotTab('daily')">今日</button>
+              <button class="tab" data-tab="weekly" onclick="switchHotTab('weekly')">本周</button>
+            </div>
+          </div>
+          <div class="post-feed" id="hotPostFeed">
+            <div class="loading-spinner-wrap"><div class="loading-spinner"></div></div>
+          </div>
+        </section>
+
+        <!-- 最新动态 -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">📌 最新动态</h2>
+            <button class="text-btn" onclick="router.navigate('#/board/all')">查看全部 →</button>
+          </div>
+          <div class="post-feed" id="latestPostFeed">
+            <div class="loading-spinner-wrap"><div class="loading-spinner"></div></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- 板块帖子列表 -->
+    <div class="page" id="page-board">
+      <div class="board-header glass-card" id="boardHeader">
+        <h2 class="board-title" id="boardTitle">板块</h2>
+        <p class="board-desc" id="boardDesc"></p>
+      </div>
+      <div class="board-toolbar">
+        <button class="board-sort-btn active" data-sort="latest" onclick="switchBoardSort('latest')">最新</button>
+        <button class="board-sort-btn" data-sort="hot" onclick="switchBoardSort('hot')">最热</button>
+      </div>
+      <div class="post-feed" id="boardPostFeed">
+        <div class="loading-spinner-wrap"><div class="loading-spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- 帖子详情 -->
+    <div class="page" id="page-post">
+      <button class="back-btn" onclick="router.back()">← 返回</button>
+      <div id="postDetailContainer"></div>
+    </div>
+
+    <!-- 发帖 -->
+    <div class="page form-page" id="page-create">
+      <div class="glass-card form-card-lg">
+        <h2 class="form-title">发布动态</h2>
+        <div class="form-subtitle">分享你在昭州中学的故事</div>
+        <div class="form-group">
+          <label class="form-label">选择板块</label>
+          <select class="form-select" id="createBoard"></select>
+        </div>
         <div class="form-group">
           <label class="form-label">标题</label>
-          <input class="form-input" id="postTitle" type="text" placeholder="给你的帖子起个标题..." maxlength="100">
+          <input class="form-input" id="createTitle" type="text" placeholder="给你的内容起个标题..." maxlength="100">
         </div>
         <div class="form-group">
           <label class="form-label">内容</label>
-          <textarea class="form-input" id="postContent" placeholder="说点什么吧..." maxlength="2000"></textarea>
+          <textarea class="form-input" id="createContent" placeholder="说点什么吧..." maxlength="5000"></textarea>
+          <div class="char-count"><span id="contentCount">0</span>/5000</div>
         </div>
         <div class="form-group">
-          <label class="form-label">分类</label>
-          <select class="form-select" id="postCategory">
-            <option value="日常">日常</option>
-            <option value="食堂">食堂</option>
-            <option value="学习">学习</option>
-            <option value="社团">社团</option>
-            <option value="八卦">八卦</option>
-            <option value="公告">公告</option>
-            <option value="求助">求助</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">配图（可选）</label>
-          <div class="upload-area" id="uploadArea" onclick="document.getElementById('imageInput').click()">
-            点击上传图片（不超过 5MB）
+          <label class="form-label">配图（最多9张）</label>
+          <div class="upload-grid" id="uploadGrid">
+            <div class="upload-btn" onclick="document.getElementById('imageInput').click()">
+              <span>+</span>
+              <span class="upload-btn-text">添加图片</span>
+            </div>
           </div>
-          <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="previewImage(event)">
-          <img id="imagePreview" class="upload-preview" style="display:none">
+          <input type="file" id="imageInput" accept="image/*" multiple style="display:none" onchange="handleImageSelect(event)">
         </div>
-        <div id="postFormError" class="form-error" style="display:none"></div>
-        <button class="form-submit" id="submitPostBtn" onclick="handleCreatePost()">发布</button>
+        <div class="form-group">
+          <label class="form-checkbox">
+            <input type="checkbox" id="createAnonymous">
+            <span class="checkbox-mark"></span>
+            <span>匿名发布（前台隐藏发布者身份）</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-checkbox">
+            <input type="checkbox" id="createLockComments">
+            <span class="checkbox-mark"></span>
+            <span>关闭评论区</span>
+          </label>
+        </div>
+        <div id="createError" class="form-error" style="display:none"></div>
+        <button class="form-submit" id="createSubmit" onclick="handleCreatePost()">发布</button>
       </div>
     </div>
-  </div>
 
-  <!-- ======== 页面：登录 ======== -->
-  <div class="page form-page" id="page-login">
-    <div class="form-card">
-      <div class="form-title">登录</div>
-      <div class="form-subtitle">欢迎回来，昭州人</div>
-      <div id="loginForm">
+    <!-- 搜索 -->
+    <div class="page" id="page-search">
+      <div class="search-page-header">
+        <div class="search-bar-lg">
+          <span class="search-bar-icon">🔍</span>
+          <input class="search-bar-input" id="searchInput" type="text" placeholder="搜索帖子、话题..." onkeydown="if(event.key==='Enter')performSearch()">
+        </div>
+      </div>
+      <div class="post-feed" id="searchResults">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔍</div>
+          <div class="empty-state-text">输入关键词搜索</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 登录 -->
+    <div class="page form-page" id="page-login">
+      <div class="glass-card form-card-sm">
+        <h2 class="form-title">欢迎回来</h2>
+        <div class="form-subtitle">登录昭州校园社区</div>
         <div class="form-group">
           <label class="form-label">邮箱</label>
-          <input class="form-input" id="loginEmail" type="email" placeholder="你的学校邮箱">
+          <input class="form-input" id="loginEmail" type="email" placeholder="你的邮箱">
         </div>
         <div class="form-group">
           <label class="form-label">密码</label>
-          <input class="form-input" id="loginPassword" type="password" placeholder="密码">
+          <input class="form-input" id="loginPassword" type="password" placeholder="密码" onkeydown="if(event.key==='Enter')handleLogin()">
         </div>
         <div id="loginError" class="form-error" style="display:none"></div>
-        <button class="form-submit" onclick="handleLogin()">登 录</button>
-        <div class="form-link">
-          还没有账号？<a href="#/register" onclick="navigate('#/register')">立即注册</a>
-        </div>
+        <button class="form-submit" onclick="handleLogin()">登录</button>
+        <div class="form-link">还没有账号？<a href="#/register" onclick="router.navigate('#/register')">立即注册</a></div>
       </div>
     </div>
-  </div>
 
-  <!-- ======== 页面：注册 ======== -->
-  <div class="page form-page" id="page-register">
-    <div class="form-card">
-      <div class="form-title">注册</div>
-      <div class="form-subtitle">加入昭州中学校园社区</div>
-      <div id="registerForm">
+    <!-- 注册 -->
+    <div class="page form-page" id="page-register">
+      <div class="glass-card form-card-sm">
+        <h2 class="form-title">加入社区</h2>
+        <div class="form-subtitle">成为昭州校园社区的一员</div>
         <div class="form-group">
           <label class="form-label">邮箱</label>
           <input class="form-input" id="regEmail" type="email" placeholder="你的邮箱">
         </div>
         <div class="form-group">
           <label class="form-label">昵称</label>
-          <input class="form-input" id="regDisplayName" type="text" placeholder="同学们怎么叫你" maxlength="20">
+          <input class="form-input" id="regDisplayName" type="text" placeholder="同学们怎么称呼你" maxlength="20">
         </div>
         <div class="form-group">
           <label class="form-label">班级（选填）</label>
@@ -156,48 +223,42 @@
           <input class="form-input" id="regPassword" type="password" placeholder="至少6位密码">
         </div>
         <div id="regError" class="form-error" style="display:none"></div>
-        <div id="regSuccess" class="form-success" style="display:none"></div>
-        <button class="form-submit" onclick="handleRegister()">注 册</button>
-        <div class="form-link">
-          已有账号？<a href="#/login" onclick="navigate('#/login')">去登录</a>
-        </div>
-      </div>
-      <div class="form-text" style="font-size:0.75rem;color:var(--text-light);margin-top:16px;text-align:center;">
-        注册即表示同意遵守校园网社区规范，发布内容需符合相关规定
+        <button class="form-submit" onclick="handleRegister()">注册</button>
+        <div class="form-link">已有账号？<a href="#/login" onclick="router.navigate('#/login')">去登录</a></div>
+        <div class="form-agreement">注册即表示同意 <a href="#/convention" onclick="router.navigate('#/convention')">社区公约</a></div>
       </div>
     </div>
-  </div>
 
-  <!-- ======== 页面：个人主页 ======== -->
-  <div class="page" id="page-profile">
-    <div id="profileContainer">
-      <div class="loading"><div class="loading-spinner"></div>加载中...</div>
+    <!-- 个人中心 -->
+    <div class="page" id="page-profile">
+      <div id="profileContainer"></div>
     </div>
-  </div>
 
-  <!-- ======== 页面：配置（首次使用） ======== -->
-  <div class="page form-page" id="page-setup">
-    <div class="form-card">
-      <div class="form-title">⚙️ 首次配置</div>
-      <div class="form-subtitle">请先在 Supabase 创建项目并填入以下信息</div>
-      <div class="config-notice show" id="setupNotice">
-        1. 访问 <a href="https://supabase.com" target="_blank">supabase.com</a> 注册并创建项目<br>
-        2. 在项目 Settings → API 中获取 URL 和 anon key<br>
-        3. 在 SQL Editor 中运行 supabase-schema.sql<br>
-        4. 在 Storage 中创建 images 桶，设为公开<br>
-        5. 将下方信息填入后点击保存
+    <!-- 社区公约 -->
+    <div class="page" id="page-convention">
+      <div class="glass-card convention-card">
+        <div id="conventionContent"></div>
       </div>
-      <div id="setupForm">
-        <div class="form-group">
-          <label class="form-label">Supabase URL</label>
-          <input class="form-input" id="setupUrl" placeholder="https://xxx.supabase.co">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Supabase Anon Key</label>
-          <input class="form-input" id="setupKey" placeholder="eyJhbGciOiJIUzI1NiIs...">
-        </div>
-        <div id="setupError" class="form-error" style="display:none"></div>
-        <button class="form-submit" onclick="handleSetup()">保存配置</button>
+    </div>
+  </main>
+
+  <!-- ======== 合规弹窗 ======== -->
+  <div class="modal-overlay" id="complianceModal">
+    <div class="modal">
+      <h3 class="modal-title">📋 发布须知</h3>
+      <div class="modal-text">
+        <p>在发布内容之前，请确认你已了解并同意以下条款：</p>
+        <ul>
+          <li>禁止发布侮辱、谩骂、人身攻击内容</li>
+          <li>禁止恶意造谣、传播不实信息</li>
+          <li>禁止发布商业广告或恶意引流</li>
+          <li>禁止发布色情、暴力、违法信息</li>
+          <li>匿名发帖同样会留存后台记录，违规可溯源追责</li>
+        </ul>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-secondary" onclick="closeComplianceModal()">我再想想</button>
+        <button class="modal-btn modal-btn-primary" onclick="confirmCompliance()">我知道了，开始发布</button>
       </div>
     </div>
   </div>
@@ -205,18 +266,13 @@
   <!-- ======== Toast ======== -->
   <div id="toast" class="toast"></div>
 
-  <!-- ======== 底部提示 ======== -->
-  <div class="security-notice">
-    🛡️ 请文明上网，发布违规内容将被追责 · 系统记录发布IP
-  </div>
-
-  <!-- ======== 浮动发帖按钮 ======== -->
-  <button class="fab" id="fabCreate" onclick="navigate('#/create')" title="发布动态">+</button>
-
-  <!-- ======== JavaScript ======== -->
+  <!-- ======== JS ======== -->
   <script src="js/supabase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/router.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/posts.js"></script>
+  <script src="js/comments.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

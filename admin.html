@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理员后台 - 昭州校园社区</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    .admin-layout { display: flex; min-height: 100vh; }
+    .admin-sidebar {
+      width: 220px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      border-right: 1px solid var(--glass-border);
+      padding: 20px 0;
+      flex-shrink: 0;
+    }
+    .admin-sidebar-title {
+      padding: 0 20px 16px;
+      font-weight: 700;
+      font-size: 1rem;
+      border-bottom: 1px solid var(--glass-border);
+      margin-bottom: 8px;
+    }
+    .admin-nav-item {
+      display: block;
+      width: 100%;
+      padding: 10px 20px;
+      border: none;
+      background: none;
+      text-align: left;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .admin-nav-item:hover { background: rgba(var(--primary-rgb), 0.06); color: var(--primary); }
+    .admin-nav-item.active { background: rgba(var(--primary-rgb), 0.1); color: var(--primary); font-weight: 600; }
+    .admin-main { flex: 1; padding: 24px; overflow-y: auto; }
+    .admin-section { display: none; }
+    .admin-section.active { display: block; }
+    .admin-table { width: 100%; border-collapse: collapse; background: var(--glass-bg); backdrop-filter: blur(8px); border-radius: var(--radius); overflow: hidden; }
+    .admin-table th, .admin-table td { padding: 10px 14px; text-align: left; font-size: 0.85rem; border-bottom: 1px solid var(--glass-border); }
+    .admin-table th { background: rgba(0,0,0,0.02); font-weight: 600; color: var(--text-secondary); }
+    .admin-table tr:hover { background: rgba(0,0,0,0.02); }
+    .admin-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 500; }
+    .admin-badge.pending { background: rgba(243,156,18,0.15); color: var(--warning); }
+    .admin-badge.resolved { background: rgba(39,174,96,0.15); color: var(--success); }
+    .admin-badge.dismissed { background: rgba(0,0,0,0.06); color: var(--text-light); }
+    .admin-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .admin-stat-card { background: var(--glass-bg); backdrop-filter: blur(8px); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 20px; }
+    .admin-stat-value { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+    .admin-stat-label { font-size: 0.82rem; color: var(--text-light); margin-top: 4px; }
+    .admin-input { padding: 8px 12px; border: 1px solid var(--glass-border); border-radius: 6px; font-size: 0.85rem; width: 200px; }
+    .admin-btn { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.82rem; transition: all 0.2s; }
+    .admin-btn-primary { background: var(--primary); color: white; }
+    .admin-btn-primary:hover { background: var(--primary-dark); }
+    .admin-btn-danger { background: var(--danger); color: white; }
+    .admin-btn-danger:hover { background: #c0392b; }
+    .admin-btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+    @media (max-width: 768px) {
+      .admin-sidebar { width: 60px; }
+      .admin-sidebar-title { font-size: 0; padding: 0 10px 12px; }
+      .admin-nav-item { padding: 10px; text-align: center; font-size: 0.7rem; }
+    }
+  </style>
+</head>
+<body style="padding-top:0;">
+  <div class="admin-layout">
+    <nav class="admin-sidebar">
+      <div class="admin-sidebar-title">📊 管理后台</div>
+      <button class="admin-nav-item active" onclick="switchAdminTab('dashboard')">📊 概览</button>
+      <button class="admin-nav-item" onclick="switchAdminTab('posts')">📝 帖子管理</button>
+      <button class="admin-nav-item" onclick="switchAdminTab('reports')">🚩 举报处理</button>
+      <button class="admin-nav-item" onclick="switchAdminTab('banned')">🔇 违禁词库</button>
+      <button class="admin-nav-item" onclick="switchAdminTab('announcements')">📢 公告管理</button>
+      <button class="admin-nav-item" onclick="switchAdminTab('users')">👥 用户管理</button>
+      <hr style="border:none;border-top:1px solid var(--glass-border);margin:8px 16px;">
+      <button class="admin-nav-item" onclick="location.href='index.html#/'">← 返回社区</button>
+    </nav>
+    <main class="admin-main">
+      <!-- 概览 -->
+      <div class="admin-section active" id="section-dashboard">
+        <h2 style="margin-bottom:20px;">📊 数据概览</h2>
+        <div class="admin-stats-grid" id="statsGrid">
+          <div class="admin-stat-card"><div class="admin-stat-value" id="statPosts">-</div><div class="admin-stat-label">总帖子数</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-value" id="statComments">-</div><div class="admin-stat-label">总评论数</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-value" id="statUsers">-</div><div class="admin-stat-label">注册用户</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-value" id="statReports">-</div><div class="admin-stat-label">待处理举报</div></div>
+        </div>
+      </div>
+
+      <!-- 帖子管理 -->
+      <div class="admin-section" id="section-posts">
+        <h2 style="margin-bottom:16px;">📝 帖子管理</h2>
+        <div id="adminPostList"></div>
+      </div>
+
+      <!-- 举报处理 -->
+      <div class="admin-section" id="section-reports">
+        <h2 style="margin-bottom:16px;">🚩 举报处理</h2>
+        <div id="adminReportList"></div>
+      </div>
+
+      <!-- 违禁词 -->
+      <div class="admin-section" id="section-banned">
+        <h2 style="margin-bottom:16px;">🔇 违禁词库</h2>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <input class="admin-input" id="bannedWordInput" placeholder="输入要添加的违禁词" style="flex:1;" onkeydown="if(event.key==='Enter')addBannedWord()">
+          <button class="admin-btn admin-btn-primary" onclick="addBannedWord()">添加</button>
+        </div>
+        <div id="bannedWordList"></div>
+      </div>
+
+      <!-- 公告管理 -->
+      <div class="admin-section" id="section-announcements">
+        <h2 style="margin-bottom:16px;">📢 公告管理</h2>
+        <div style="margin-bottom:16px;">
+          <input class="admin-input" id="announceTitle" placeholder="公告标题" style="display:block;width:100%;margin-bottom:8px;">
+          <textarea class="admin-input" id="announceContent" placeholder="公告内容" style="display:block;width:100%;min-height:80px;margin-bottom:8px;resize:vertical;"></textarea>
+          <button class="admin-btn admin-btn-primary" onclick="addAnnouncement()">发布公告</button>
+        </div>
+        <div id="announcementList"></div>
+      </div>
+
+      <!-- 用户管理 -->
+      <div class="admin-section" id="section-users">
+        <h2 style="margin-bottom:16px;">👥 用户管理</h2>
+        <div id="adminUserList"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/supabase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
