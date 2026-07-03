@@ -1,30 +1,30 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>昭州校园社区</title>
+  <title>鏄窞鏍″洯绀惧尯</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- ======== 校园背景 ======== -->
+  <!-- ======== 鏍″洯鑳屾櫙 ======== -->
   <div class="bg-wrapper" id="bgWrapper">
-    <img id="campusBg" class="campus-bg" src="images/school-bg.jpg" alt="昭州中学">
+    <img id="campusBg" class="campus-bg" src="images/school-bg.jpg" alt="鏄窞涓">
     <div class="bg-overlay" id="bgOverlay"></div>
   </div>
 
-  <!-- ======== 导航栏 ======== -->
+  <!-- ======== 瀵艰埅鏍?======== -->
   <nav class="navbar glass" id="navbar">
     <div class="nav-inner">
       <a class="nav-brand" href="#/" onclick="router.navigate('#/')">
-        <span class="nav-brand-icon">🏫</span>
-        <span class="nav-brand-text">昭州校园</span>
+        <span class="nav-brand-icon">馃彨</span>
+        <span class="nav-brand-text">鏄窞鏍″洯</span>
       </a>
       <div class="nav-actions" id="navActions">
-        <button class="nav-link" onclick="router.navigate('#/')">首页</button>
-        <button class="nav-link" id="navAdmin" onclick="router.navigate('#/admin')" style="display:none">管理</button>
-        <button class="nav-link nav-login" id="navLoginBtn" onclick="router.navigate('#/login')">登录</button>
+        <button class="nav-link" onclick="router.navigate('#/')">棣栭〉</button>
+        <button class="nav-link" id="navAdmin" onclick="router.navigate('#/admin')" style="display:none">绠＄悊</button>
+        <button class="nav-link nav-login" id="navLoginBtn" onclick="router.navigate('#/login')">鐧诲綍</button>
         <div class="nav-user" id="navUserMenu" style="display:none">
           <button class="nav-avatar-btn" id="navAvatarBtn" onclick="router.navigate('#/profile')">
             <span id="navAvatar" class="avatar-small"></span>
@@ -34,50 +34,49 @@
     </div>
   </nav>
 
-  <!-- ======== 页面容器 ======== -->
+  <!-- ======== 椤甸潰瀹瑰櫒 ======== -->
   <main id="app">
-    <!-- 首页 -->
+    <!-- 棣栭〉 -->
     <div class="page" id="page-home">
       <section class="hero-section" id="hero">
         <div class="hero-bg"></div>
         <div class="hero-content">
-          <div class="hero-badge">🏫 昭州中学校内专属社区</div>
-          <h1 class="hero-title">昭州校园社区</h1>
-          <p class="hero-subtitle">分享校园生活 · 发现身边故事 · 连接每一个昭州人</p>
+          <div class="hero-badge">馃彨 鏄窞涓鏍″唴涓撳睘绀惧尯</div>
+          <h1 class="hero-title">鏄窞鏍″洯绀惧尯</h1>
+          <p class="hero-subtitle">鍒嗕韩鏍″洯鐢熸椿 路 鍙戠幇韬竟鏁呬簨 路 杩炴帴姣忎竴涓槶宸炰汉</p>
           <div class="hero-search">
-            <span class="hero-search-icon">🔍</span>
-            <input class="hero-search-input" id="heroSearch" type="text" placeholder="搜索帖子、话题、关键词..." onkeydown="if(event.key==='Enter'){const v=this.value.trim();if(v)router.navigate('#/search/'+encodeURIComponent(v))}">
+            <span class="hero-search-icon">馃攳</span>
+            <input class="hero-search-input" id="heroSearch" type="text" placeholder="鎼滅储甯栧瓙銆佽瘽棰樸€佸叧閿瘝..." onkeydown="if(event.key==='Enter'){const v=this.value.trim();if(v)router.navigate('#/search/'+encodeURIComponent(v))}">
           </div>
           <button class="hero-cta" onclick="handleCreateClick()">
-            <span>✏️</span> 发布动态
-          </button>
+            <span>鉁忥笍</span> 鍙戝竷鍔ㄦ€?          </button>
         </div>
       </section>
 
       <div class="home-content">
-        <!-- 公告轮播 -->
+        <!-- 鍏憡杞挱 -->
         <div class="announcement-bar" id="announcementBar">
-          <span class="announcement-icon">📢</span>
+          <span class="announcement-icon">馃摙</span>
           <div class="announcement-track" id="announcementTrack">
-            <span class="announcement-text">加载中...</span>
+            <span class="announcement-text">鍔犺浇涓?..</span>
           </div>
         </div>
 
-        <!-- 板块导航 -->
+        <!-- 鏉垮潡瀵艰埅 -->
         <section class="section">
           <div class="section-header">
-            <h2 class="section-title">📂 社区板块</h2>
+            <h2 class="section-title">馃搨 绀惧尯鏉垮潡</h2>
           </div>
           <div class="board-grid" id="boardGrid"></div>
         </section>
 
-        <!-- 热帖榜单 -->
+        <!-- 鐑笘姒滃崟 -->
         <section class="section">
           <div class="section-header">
-            <h2 class="section-title">🔥 今日热帖</h2>
+            <h2 class="section-title">馃敟 浠婃棩鐑笘</h2>
             <div class="tab-group">
-              <button class="tab active" data-tab="daily" onclick="switchHotTab('daily')">今日</button>
-              <button class="tab" data-tab="weekly" onclick="switchHotTab('weekly')">本周</button>
+              <button class="tab active" data-tab="daily" onclick="switchHotTab('daily')">浠婃棩</button>
+              <button class="tab" data-tab="weekly" onclick="switchHotTab('weekly')">鏈懆</button>
             </div>
           </div>
           <div class="post-feed" id="hotPostFeed">
@@ -85,11 +84,11 @@
           </div>
         </section>
 
-        <!-- 最新动态 -->
+        <!-- 鏈€鏂板姩鎬?-->
         <section class="section">
           <div class="section-header">
-            <h2 class="section-title">📌 最新动态</h2>
-            <button class="text-btn" onclick="router.navigate('#/board/all')">查看全部 →</button>
+            <h2 class="section-title">馃搶 鏈€鏂板姩鎬?/h2>
+            <button class="text-btn" onclick="router.navigate('#/board/all')">鏌ョ湅鍏ㄩ儴 鈫?/button>
           </div>
           <div class="post-feed" id="latestPostFeed">
             <div class="loading-spinner-wrap"><div class="loading-spinner"></div></div>
@@ -98,51 +97,51 @@
       </div>
     </div>
 
-    <!-- 板块帖子列表 -->
+    <!-- 鏉垮潡甯栧瓙鍒楄〃 -->
     <div class="page" id="page-board">
       <div class="board-header glass-card" id="boardHeader">
-        <h2 class="board-title" id="boardTitle">板块</h2>
+        <h2 class="board-title" id="boardTitle">鏉垮潡</h2>
         <p class="board-desc" id="boardDesc"></p>
       </div>
       <div class="board-toolbar">
-        <button class="board-sort-btn active" data-sort="latest" onclick="switchBoardSort('latest')">最新</button>
-        <button class="board-sort-btn" data-sort="hot" onclick="switchBoardSort('hot')">最热</button>
+        <button class="board-sort-btn active" data-sort="latest" onclick="switchBoardSort('latest')">鏈€鏂?/button>
+        <button class="board-sort-btn" data-sort="hot" onclick="switchBoardSort('hot')">鏈€鐑?/button>
       </div>
       <div class="post-feed" id="boardPostFeed">
         <div class="loading-spinner-wrap"><div class="loading-spinner"></div></div>
       </div>
     </div>
 
-    <!-- 帖子详情 -->
+    <!-- 甯栧瓙璇︽儏 -->
     <div class="page" id="page-post">
-      <button class="back-btn" onclick="router.back()">← 返回</button>
+      <button class="back-btn" onclick="router.back()">鈫?杩斿洖</button>
       <div id="postDetailContainer"></div>
     </div>
 
-    <!-- 发帖 -->
+    <!-- 鍙戝笘 -->
     <div class="page form-page" id="page-create">
       <div class="glass-card form-card-lg">
-        <h2 class="form-title">发布动态</h2>
-        <div class="form-subtitle">分享你在昭州中学的故事</div>
+        <h2 class="form-title">鍙戝竷鍔ㄦ€?/h2>
+        <div class="form-subtitle">鍒嗕韩浣犲湪鏄窞涓鐨勬晠浜?/div>
         <div class="form-group">
-          <label class="form-label">选择板块</label>
+          <label class="form-label">閫夋嫨鏉垮潡</label>
           <select class="form-select" id="createBoard"></select>
         </div>
         <div class="form-group">
-          <label class="form-label">标题</label>
-          <input class="form-input" id="createTitle" type="text" placeholder="给你的内容起个标题..." maxlength="100">
+          <label class="form-label">鏍囬</label>
+          <input class="form-input" id="createTitle" type="text" placeholder="缁欎綘鐨勫唴瀹硅捣涓爣棰?.." maxlength="100">
         </div>
         <div class="form-group">
-          <label class="form-label">内容</label>
-          <textarea class="form-input" id="createContent" placeholder="说点什么吧..." maxlength="5000"></textarea>
+          <label class="form-label">鍐呭</label>
+          <textarea class="form-input" id="createContent" placeholder="璇寸偣浠€涔堝惂..." maxlength="5000"></textarea>
           <div class="char-count"><span id="contentCount">0</span>/5000</div>
         </div>
         <div class="form-group">
-          <label class="form-label">配图（最多9张）</label>
+          <label class="form-label">閰嶅浘锛堟渶澶?寮狅級</label>
           <div class="upload-grid" id="uploadGrid">
             <div class="upload-btn" onclick="document.getElementById('imageInput').click()">
               <span>+</span>
-              <span class="upload-btn-text">添加图片</span>
+              <span class="upload-btn-text">娣诲姞鍥剧墖</span>
             </div>
           </div>
           <input type="file" id="imageInput" accept="image/*" multiple style="display:none" onchange="handleImageSelect(event)">
@@ -151,90 +150,90 @@
           <label class="form-checkbox">
             <input type="checkbox" id="createAnonymous">
             <span class="checkbox-mark"></span>
-            <span>匿名发布（前台隐藏发布者身份）</span>
+            <span>鍖垮悕鍙戝竷锛堝墠鍙伴殣钘忓彂甯冭€呰韩浠斤級</span>
           </label>
         </div>
         <div class="form-group">
           <label class="form-checkbox">
             <input type="checkbox" id="createLockComments">
             <span class="checkbox-mark"></span>
-            <span>关闭评论区</span>
+            <span>鍏抽棴璇勮鍖?/span>
           </label>
         </div>
         <div id="createError" class="form-error" style="display:none"></div>
-        <button class="form-submit" id="createSubmit" onclick="handleCreatePost()">发布</button>
+        <button class="form-submit" id="createSubmit" onclick="handleCreatePost()">鍙戝竷</button>
       </div>
     </div>
 
-    <!-- 搜索 -->
+    <!-- 鎼滅储 -->
     <div class="page" id="page-search">
       <div class="search-page-header">
         <div class="search-bar-lg">
-          <span class="search-bar-icon">🔍</span>
-          <input class="search-bar-input" id="searchInput" type="text" placeholder="搜索帖子、话题..." onkeydown="if(event.key==='Enter')performSearch()">
+          <span class="search-bar-icon">馃攳</span>
+          <input class="search-bar-input" id="searchInput" type="text" placeholder="鎼滅储甯栧瓙銆佽瘽棰?.." onkeydown="if(event.key==='Enter')performSearch()">
         </div>
       </div>
       <div class="post-feed" id="searchResults">
         <div class="empty-state">
-          <div class="empty-state-icon">🔍</div>
-          <div class="empty-state-text">输入关键词搜索</div>
+          <div class="empty-state-icon">馃攳</div>
+          <div class="empty-state-text">杈撳叆鍏抽敭璇嶆悳绱?/div>
         </div>
       </div>
     </div>
 
-    <!-- 登录 -->
+    <!-- 鐧诲綍 -->
     <div class="page form-page" id="page-login">
       <div class="glass-card form-card-sm">
-        <h2 class="form-title">欢迎回来</h2>
-        <div class="form-subtitle">登录昭州校园社区</div>
+        <h2 class="form-title">娆㈣繋鍥炴潵</h2>
+        <div class="form-subtitle">鐧诲綍鏄窞鏍″洯绀惧尯</div>
         <div class="form-group">
-          <label class="form-label">邮箱</label>
-          <input class="form-input" id="loginEmail" type="email" placeholder="你的邮箱">
+          <label class="form-label">閭</label>
+          <input class="form-input" id="loginEmail" type="email" placeholder="浣犵殑閭">
         </div>
         <div class="form-group">
-          <label class="form-label">密码</label>
-          <input class="form-input" id="loginPassword" type="password" placeholder="密码" onkeydown="if(event.key==='Enter')handleLogin()">
+          <label class="form-label">瀵嗙爜</label>
+          <input class="form-input" id="loginPassword" type="password" placeholder="瀵嗙爜" onkeydown="if(event.key==='Enter')handleLogin()">
         </div>
         <div id="loginError" class="form-error" style="display:none"></div>
-        <button class="form-submit" onclick="handleLogin()">登录</button>
-        <div class="form-link">还没有账号？<a href="#/register" onclick="router.navigate('#/register')">立即注册</a></div>
+        <button class="form-submit" onclick="handleLogin()">鐧诲綍</button>
+        <div class="form-link">杩樻病鏈夎处鍙凤紵<a href="#/register" onclick="router.navigate('#/register')">绔嬪嵆娉ㄥ唽</a></div>
       </div>
     </div>
 
-    <!-- 注册 -->
+    <!-- 娉ㄥ唽 -->
     <div class="page form-page" id="page-register">
       <div class="glass-card form-card-sm">
-        <h2 class="form-title">加入社区</h2>
-        <div class="form-subtitle">成为昭州校园社区的一员</div>
+        <h2 class="form-title">鍔犲叆绀惧尯</h2>
+        <div class="form-subtitle">鎴愪负鏄窞鏍″洯绀惧尯鐨勪竴鍛?/div>
         <div class="form-group">
-          <label class="form-label">邮箱</label>
-          <input class="form-input" id="regEmail" type="email" placeholder="你的邮箱">
+          <label class="form-label">閭</label>
+          <input class="form-input" id="regEmail" type="email" placeholder="浣犵殑閭">
         </div>
         <div class="form-group">
-          <label class="form-label">昵称</label>
-          <input class="form-input" id="regDisplayName" type="text" placeholder="同学们怎么称呼你" maxlength="20">
+          <label class="form-label">鏄电О</label>
+          <input class="form-input" id="regDisplayName" type="text" placeholder="鍚屽浠€庝箞绉板懠浣? maxlength="20">
         </div>
         <div class="form-group">
-          <label class="form-label">班级（选填）</label>
-          <input class="form-input" id="regClass" type="text" placeholder="如：高二(3)班">
+          <label class="form-label">鐝骇锛堥€夊～锛?/label>
+          <input class="form-input" id="regClass" type="text" placeholder="濡傦細楂樹簩(3)鐝?>
         </div>
         <div class="form-group">
-          <label class="form-label">密码</label>
-          <input class="form-input" id="regPassword" type="password" placeholder="至少6位密码">
+          <label class="form-label">瀵嗙爜</label>
+          <input class="form-input" id="regPassword" type="password" placeholder="鑷冲皯6浣嶅瘑鐮?>
         </div>
         <div id="regError" class="form-error" style="display:none"></div>
-        <button class="form-submit" onclick="handleRegister()">注册</button>
-        <div class="form-link">已有账号？<a href="#/login" onclick="router.navigate('#/login')">去登录</a></div>
-        <div class="form-agreement">注册即表示同意 <a href="#/convention" onclick="router.navigate('#/convention')">社区公约</a></div>
+        <button class="form-submit" onclick="handleRegister()">娉ㄥ唽</button>
+        <div class="form-link">宸叉湁璐﹀彿锛?a href="#/login" onclick="router.navigate('#/login')">鍘荤櫥褰?/a></div>
+        <div class="form-agreement">娉ㄥ唽鍗宠〃绀哄悓鎰?<a href="#/convention" onclick="router.navigate('#/convention')">绀惧尯鍏害</a></div>
       </div>
     </div>
 
-    <!-- 个人中心 -->
+    <!-- 涓汉涓績 -->
     <div class="page" id="page-profile">
       <div id="profileContainer"></div>
     </div>
 
-    <!-- 社区公约 -->
+    <!-- 绀惧尯鍏害 -->
     <div class="page" id="page-convention">
       <div class="glass-card convention-card">
         <div id="conventionContent"></div>
@@ -242,23 +241,23 @@
     </div>
   </main>
 
-  <!-- ======== 合规弹窗 ======== -->
+  <!-- ======== 鍚堣寮圭獥 ======== -->
   <div class="modal-overlay" id="complianceModal">
     <div class="modal">
-      <h3 class="modal-title">📋 发布须知</h3>
+      <h3 class="modal-title">馃搵 鍙戝竷椤荤煡</h3>
       <div class="modal-text">
-        <p>在发布内容之前，请确认你已了解并同意以下条款：</p>
+        <p>鍦ㄥ彂甯冨唴瀹逛箣鍓嶏紝璇风‘璁や綘宸蹭簡瑙ｅ苟鍚屾剰浠ヤ笅鏉℃锛?/p>
         <ul>
-          <li>禁止发布侮辱、谩骂、人身攻击内容</li>
-          <li>禁止恶意造谣、传播不实信息</li>
-          <li>禁止发布商业广告或恶意引流</li>
-          <li>禁止发布色情、暴力、违法信息</li>
-          <li>匿名发帖同样会留存后台记录，违规可溯源追责</li>
+          <li>绂佹鍙戝竷渚颈銆佽癌楠傘€佷汉韬敾鍑诲唴瀹?/li>
+          <li>绂佹鎭舵剰閫犺埃銆佷紶鎾笉瀹炰俊鎭?/li>
+          <li>绂佹鍙戝竷鍟嗕笟骞垮憡鎴栨伓鎰忓紩娴?/li>
+          <li>绂佹鍙戝竷鑹叉儏銆佹毚鍔涖€佽繚娉曚俊鎭?/li>
+          <li>鍖垮悕鍙戝笘鍚屾牱浼氱暀瀛樺悗鍙拌褰曪紝杩濊鍙函婧愯拷璐?/li>
         </ul>
       </div>
       <div class="modal-actions">
-        <button class="modal-btn modal-btn-secondary" onclick="closeComplianceModal()">我再想想</button>
-        <button class="modal-btn modal-btn-primary" onclick="confirmCompliance()">我知道了，开始发布</button>
+        <button class="modal-btn modal-btn-secondary" onclick="closeComplianceModal()">鎴戝啀鎯虫兂</button>
+        <button class="modal-btn modal-btn-primary" onclick="confirmCompliance()">鎴戠煡閬撲簡锛屽紑濮嬪彂甯?/button>
       </div>
     </div>
   </div>
@@ -267,7 +266,7 @@
   <div id="toast" class="toast"></div>
 
   <!-- ======== JS ======== -->
-  <script src="js/supabase.js"></script>
+  <script src="js/supabase.js?v=2"></script>
   <script src="js/utils.js"></script>
   <script src="js/router.js"></script>
   <script src="js/auth.js"></script>
