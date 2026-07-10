@@ -62,7 +62,10 @@ body {
 }
 .campus-bg {
   width: 100%; height: 120%;
-  background: #1a1a2e url('') center/cover no-repeat;
+  background-color: #1a1a2e;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   will-change: transform;
 }
 .bg-overlay {
