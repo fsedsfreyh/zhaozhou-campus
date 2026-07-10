@@ -1,12 +1,12 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>管理后台 - 昭州校园社区</title>
+  <title>绠＄悊鍚庡彴 - 鏄窞鏍″洯绀惧尯</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/style.css?v=14">
+  <link rel="stylesheet" href="css/style.css?v=17">
   <style>
     body { padding-top: 0; }
     .admin-layout { display: flex; min-height: 100vh; }
@@ -36,55 +36,55 @@
 <body>
   <div class="admin-layout">
     <nav class="admin-sidebar">
-      <div class="admin-sidebar-title">⚙️ 管理后台</div>
-      <button class="admin-nav-item active" onclick="switchTab('dashboard')">📊 概览</button>
-      <button class="admin-nav-item" onclick="switchTab('posts')">📝 帖子</button>
-      <button class="admin-nav-item" onclick="switchTab('reports')">🚩 举报</button>
-      <button class="admin-nav-item" onclick="switchTab('banned')">🔒 违禁词</button>
-      <button class="admin-nav-item" onclick="switchTab('announcements')">📢 公告</button>
+      <div class="admin-sidebar-title">鈿欙笍 绠＄悊鍚庡彴</div>
+      <button class="admin-nav-item active" onclick="switchTab('dashboard')">馃搳 姒傝</button>
+      <button class="admin-nav-item" onclick="switchTab('posts')">馃摑 甯栧瓙</button>
+      <button class="admin-nav-item" onclick="switchTab('reports')">馃毄 涓炬姤</button>
+      <button class="admin-nav-item" onclick="switchTab('banned')">馃敀 杩濈璇?/button>
+      <button class="admin-nav-item" onclick="switchTab('announcements')">馃摙 鍏憡</button>
       <hr style="border:none;border-top:1px solid var(--glass-border);margin:8px 12px">
-      <button class="admin-nav-item" onclick="location.href='index.html'">← 返回</button>
+      <button class="admin-nav-item" onclick="location.href='index.html'">鈫?杩斿洖</button>
     </nav>
     <main class="admin-main">
       <div class="admin-section active" id="section-dashboard">
-        <h2 style="margin-bottom:16px">📊 数据概览</h2>
+        <h2 style="margin-bottom:16px">馃搳 鏁版嵁姒傝</h2>
         <div class="admin-stats-grid" id="statsGrid">
-          <div class="admin-stat-card"><div class="admin-stat-value" id="statPosts">-</div><div class="admin-stat-label">帖子</div></div>
-          <div class="admin-stat-card"><div class="admin-stat-value" id="statComments">-</div><div class="admin-stat-label">评论</div></div>
-          <div class="admin-stat-card"><div class="admin-stat-value" id="statUsers">-</div><div class="admin-stat-label">用户</div></div>
-          <div class="admin-stat-card"><div class="admin-stat-value" id="statReports">-</div><div class="admin-stat-label">待处理举报</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-value" id="statPosts">-</div><div class="admin-stat-label">甯栧瓙</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-value" id="statComments">-</div><div class="admin-stat-label">璇勮</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-value" id="statUsers">-</div><div class="admin-stat-label">鐢ㄦ埛</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-value" id="statReports">-</div><div class="admin-stat-label">寰呭鐞嗕妇鎶?/div></div>
         </div>
       </div>
       <div class="admin-section" id="section-posts">
-        <h2 style="margin-bottom:12px">📝 帖子管理</h2>
+        <h2 style="margin-bottom:12px">馃摑 甯栧瓙绠＄悊</h2>
         <div id="adminPostList"></div>
       </div>
       <div class="admin-section" id="section-reports">
-        <h2 style="margin-bottom:12px">🚩 举报管理</h2>
+        <h2 style="margin-bottom:12px">馃毄 涓炬姤绠＄悊</h2>
         <div id="adminReportList"></div>
       </div>
       <div class="admin-section" id="section-banned">
-        <h2 style="margin-bottom:12px">🔒 违禁词管理</h2>
+        <h2 style="margin-bottom:12px">馃敀 杩濈璇嶇鐞?/h2>
         <div style="display:flex;gap:8px;margin-bottom:12px">
-          <input class="admin-input" id="bannedWordInput" placeholder="添加违禁词" style="flex:1" onkeydown="if(event.key==='Enter')addBannedWord()">
-          <button class="admin-btn admin-btn-primary" onclick="addBannedWord()">添加</button>
+          <input class="admin-input" id="bannedWordInput" placeholder="娣诲姞杩濈璇? style="flex:1" onkeydown="if(event.key==='Enter')addBannedWord()">
+          <button class="admin-btn admin-btn-primary" onclick="addBannedWord()">娣诲姞</button>
         </div>
         <div id="bannedWordList"></div>
       </div>
       <div class="admin-section" id="section-announcements">
-        <h2 style="margin-bottom:12px">📢 公告管理</h2>
+        <h2 style="margin-bottom:12px">馃摙 鍏憡绠＄悊</h2>
         <div style="margin-bottom:12px;display:flex;flex-direction:column;gap:8px">
-          <input class="admin-input" id="announceTitle" placeholder="公告标题" style="width:100%">
-          <textarea class="admin-input" id="announceContent" placeholder="公告内容" style="width:100%;min-height:80px;resize:vertical"></textarea>
-          <button class="admin-btn admin-btn-primary" onclick="addAnnouncement()">发布公告</button>
+          <input class="admin-input" id="announceTitle" placeholder="鍏憡鏍囬" style="width:100%">
+          <textarea class="admin-input" id="announceContent" placeholder="鍏憡鍐呭" style="width:100%;min-height:80px;resize:vertical"></textarea>
+          <button class="admin-btn admin-btn-primary" onclick="addAnnouncement()">鍙戝竷鍏憡</button>
         </div>
         <div id="announcementList"></div>
       </div>
     </main>
   </div>
-  <script src="js/supabase.js?v=14"></script>
-  <script src="js/utils.js?v=14"></script>
-  <script src="js/modules.js?v=14"></script>
-  <script src="js/admin.js?v=14"></script>
+  <script src="js/supabase.js?v=17"></script>
+  <script src="js/utils.js?v=17"></script>
+  <script src="js/modules.js?v=17"></script>
+  <script src="js/admin.js?v=17"></script>
 </body>
 </html>
