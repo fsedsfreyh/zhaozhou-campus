@@ -1,49 +1,6 @@
-// ======== 简易哈希路由器 ========
-const router = {
-  _routes: {},
-  register(pattern, handler) {
-    this._routes[pattern] = handler;
-  },
-  navigate(hash) {
-    if (!hash.startsWith('#')) hash = '#' + hash;
-    history.replaceState(null, '', hash);
-    this._resolve(hash);
-  },
-  start() {
-    this._resolve(location.hash || '#/');
-    window.addEventListener('hashchange', (e) => this._resolve(location.hash));
-  },
-  _resolve(hash) {
-    document.querySelectorAll('.page-container').forEach(el => el.classList.remove('active'));
-    // Direct match
-    if (this._routes[hash]) {
-      this._routes[hash]({}).catch(err => console.error('Route error:', err));
-      return;
-    }
-    // Param match: #/board/:slug, #/post/:id
-    for (const pattern in this._routes) {
-      if (!pattern.includes(':')) continue;
-      const parts = pattern.split('/');
-      const hashParts = hash.split('/');
-      if (parts.length !== hashParts.length) continue;
-      const params = {};
-      let match = true;
-      for (let i = 0; i < parts.length; i++) {
-        if (parts[i].startsWith(':')) {
-          params[parts[i].slice(1)] = hashParts[i];
-        } else if (parts[i] !== hashParts[i]) {
-          match = false;
-          break;
-        }
-      }
-      if (match) {
-        this._routes[pattern](params).catch(err => console.error('Route error:', err));
-        return;
-      }
-    }
-    console.warn('No route matched:', hash);
-  }
-};
+// 路由器已在 HTML 中内联定义（window.router）
+// 路由器已在 HTML 中内联定义（window.router）
+// 路由器已在 HTML 中内联定义（window.router）
 // ======== 应用入口 ========
 
 // 注册路由
@@ -309,4 +266,4 @@ window.reportPost = reportPost;
 window.switchHotTab = switchHotTab;
 window.switchBoardSort = switchBoardSort;
 window.switchProfileTab = switchProfileTab;
-window.router = router;
+// router is defined inline in HTML
