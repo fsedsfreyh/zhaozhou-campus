@@ -1,10 +1,58 @@
 // ======== 认证模块 ========
 
-// 登录
+/** 初始化认证模块 */
+document.addEventListener('DOMContentLoaded', function() {
+  // 登录按钮 → 打开弹窗
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) loginBtn.onclick = function() { openAuthModal('login'); };
+
+  // 切换登录/注册 tab
+  document.querySelectorAll('.auth-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.remove('active'); });
+      this.classList.add('active');
+      var mode = this.getAttribute('data-mode');
+      document.getElementById('authTitle').textContent = mode === 'login' ? '登录' : '注册';
+      document.getElementById('authSubmit').textContent = mode === 'login' ? '登录' : '注册';
+      document.getElementById('displayNameGroup').style.display = mode === 'login' ? 'none' : '';
+    });
+  });
+
+  // 表单提交
+  document.getElementById('authForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var mode = document.querySelector('.auth-tab.active').getAttribute('data-mode');
+    if (mode === 'login') await handleLogin();
+    else await handleRegister();
+  });
+
+  // 关闭弹窗
+  document.getElementById('authModalClose').onclick = function() { closeAuthModal(); };
+  document.getElementById('authModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAuthModal();
+  });
+});
+
+function openAuthModal(mode) {
+  document.getElementById('authError').style.display = 'none';
+  document.getElementById('authError').textContent = '';
+  document.getElementById('authSubmit').disabled = false;
+  document.getElementById('authSubmit').textContent = mode === 'login' ? '登录' : '注册';
+  document.getElementById('authTitle').textContent = mode === 'login' ? '登录' : '注册';
+  document.getElementById('displayNameGroup').style.display = mode === 'login' ? 'none' : '';
+  document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.toggle('active', t.getAttribute('data-mode') === mode); });
+  document.getElementById('authModal').classList.add('show');
+}
+
+function closeAuthModal() {
+  document.getElementById('authModal').classList.remove('show');
+}
+
+/** 登录 */
 async function handleLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value.trim();
-  const errorEl = document.getElementById('loginError');
+  var email = document.getElementById('authEmail').value.trim();
+  var password = document.getElementById('authPassword').value.trim();
+  var errorEl = document.getElementById('authError');
   
   if (!email || !password) {
     errorEl.textContent = '请填写邮箱和密码';
@@ -13,40 +61,36 @@ async function handleLogin() {
   }
   
   errorEl.style.display = 'none';
+  document.getElementById('authSubmit').disabled = true;
+  document.getElementById('authSubmit').textContent = '登录中...';
   
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  var { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  
+  document.getElementById('authSubmit').disabled = false;
   
   if (error) {
     errorEl.textContent = error.message.includes('Invalid login') ? '邮箱或密码错误' : error.message;
     errorEl.style.display = 'block';
+    document.getElementById('authSubmit').textContent = '登录';
     return;
   }
   
-  // 更新登录IP
-  const ip = await getUserIP();
-  await supabase.from('profiles').update({ 
-    last_sign_in_ip: ip, 
-    last_sign_in_at: new Date().toISOString() 
-  }).eq('id', data.user.id);
-  
   showToast('登录成功');
+  closeAuthModal();
   await updateNav();
   router.navigate('#/');
 }
 
-// 注册
+/** 注册 */
 async function handleRegister() {
-  const email = document.getElementById('regEmail').value.trim();
-  const displayName = document.getElementById('regDisplayName').value.trim();
-  const className = document.getElementById('regClass').value.trim();
-  const password = document.getElementById('regPassword').value.trim();
-  const errorEl = document.getElementById('regError');
-  const successEl = document.getElementById('regSuccess');
+  var email = document.getElementById('authEmail').value.trim();
+  var password = document.getElementById('authPassword').value.trim();
+  var displayName = document.getElementById('authDisplayName').value.trim();
+  var errorEl = document.getElementById('authError');
   
-  if (!email || !displayName || !password) {
+  if (!email || !password || !displayName) {
     errorEl.textContent = '请填写所有必填项';
     errorEl.style.display = 'block';
-    successEl.style.display = 'none';
     return;
   }
   
@@ -56,23 +100,24 @@ async function handleRegister() {
     return;
   }
   
-  // 检查违禁词（昵称不能包含违禁词）
-  const badWord = containsBannedWords(displayName);
-  if (badWord) {
+  // 检查违禁词
+  if (typeof containsBannedWords === 'function' && containsBannedWords(displayName)) {
     errorEl.textContent = '昵称包含不当词汇，请修改';
     errorEl.style.display = 'block';
     return;
   }
   
   errorEl.style.display = 'none';
+  document.getElementById('authSubmit').disabled = true;
+  document.getElementById('authSubmit').textContent = '注册中...';
   
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { display_name: displayName }
-    }
+  var { data, error } = await supabase.auth.signUp({
+    email, password,
+    options: { data: { display_name: displayName } }
   });
+  
+  document.getElementById('authSubmit').disabled = false;
+  document.getElementById('authSubmit').textContent = '注册';
   
   if (error) {
     errorEl.textContent = error.message;
@@ -81,23 +126,22 @@ async function handleRegister() {
   }
   
   // 更新 profile
-  const ip = await getUserIP();
-  const updates = { 
-    display_name: displayName,
-    class_name: className || '',
-    last_sign_in_ip: ip,
-    last_sign_in_at: new Date().toISOString()
-  };
-  
-  // 先 profile 已存在（trigger 创建了）
-  await supabase.from('profiles').update(updates).eq('id', data.user.id);
+  try {
+    var ip = await (typeof getUserIP === 'function' ? getUserIP() : Promise.resolve(''));
+    await supabase.from('profiles').update({
+      display_name: displayName,
+      last_sign_in_ip: ip,
+      last_sign_in_at: new Date().toISOString()
+    }).eq('id', data.user.id);
+  } catch {}
   
   showToast('注册成功！欢迎加入昭州校园社区');
-  router.navigate('#/');
+  closeAuthModal();
   await updateNav();
+  router.navigate('#/');
 }
 
-// 登出
+/** 登出 */
 async function logoutUser() {
   await supabase.auth.signOut();
   showToast('已退出登录');
@@ -105,66 +149,42 @@ async function logoutUser() {
   router.navigate('#/');
 }
 
-// 检查用户是否被封禁
+/** 检查用户是否被封禁 */
 async function checkBanStatus(userId) {
-  const { data } = await supabase
-    .from('profiles')
-    .select('is_banned, ban_reason, banned_until')
-    .eq('id', userId)
-    .single();
-  
-  if (!data || !data.is_banned) return null;
-  
-  if (data.banned_until && new Date(data.banned_until) < new Date()) {
-    // 封禁已过期，自动解封
-    await supabase.from('profiles').update({ 
-      is_banned: false, 
-      ban_reason: '',
-      banned_until: null 
-    }).eq('id', userId);
-    return null;
-  }
-  
-  return data;
+  try {
+    var { data } = await supabase.from('profiles').select('is_banned, ban_reason, banned_until').eq('id', userId).single();
+    if (!data || !data.is_banned) return null;
+    if (data.banned_until && new Date(data.banned_until) < new Date()) {
+      await supabase.from('profiles').update({ is_banned: false, ban_reason: '', banned_until: null }).eq('id', userId);
+      return null;
+    }
+    return data;
+  } catch { return null; }
 }
 
-// 检查发帖权限
+/** 检查发帖权限 */
 async function checkPostPermission() {
-  const { data: { user } } = await supabase.auth.getUser();
+  var { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     showToast('请先登录');
-    router.navigate('#/login');
     return false;
   }
-  
-  const ban = await checkBanStatus(user.id);
+  var ban = await checkBanStatus(user.id);
   if (ban) {
     showToast('账号已被限制发帖' + (ban.ban_reason ? '：' + ban.ban_reason : ''));
     return false;
   }
-  
   return true;
 }
 
-// 弹出合规弹窗
+/** FAB 点击 → 发帖 */
 function handleCreateClick() {
-  // 检查登录
-  supabase.auth.getUser().then(({ data: { user } }) => {
+  supabase.auth.getUser().then(function({ data: { user } }) {
     if (!user) {
       showToast('请先登录');
-      router.navigate('#/login');
+      openAuthModal('login');
       return;
     }
-    // 显示合规弹窗
-    document.getElementById('complianceModal').classList.add('show');
+    router.navigate('#/create');
   });
-}
-
-function closeComplianceModal() {
-  document.getElementById('complianceModal').classList.remove('show');
-}
-
-function confirmCompliance() {
-  document.getElementById('complianceModal').classList.remove('show');
-  router.navigate('#/create');
 }

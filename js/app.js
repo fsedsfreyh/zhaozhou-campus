@@ -79,25 +79,12 @@ router.register('#/create', async () => {
 
 router.register('#/login', async () => {
   document.getElementById('loadingScreen').style.display = 'none';
-  const el = document.getElementById('page-login');
-  if (el) el.classList.add('active');
-  document.body.classList.remove('home-hero-mode');
-  // Show auth modal instead
-  const modal = document.getElementById('authModal');
-  if (modal) modal.classList.add('show');
+  if (typeof openAuthModal === 'function') openAuthModal('login');
 });
 
 router.register('#/register', async () => {
   document.getElementById('loadingScreen').style.display = 'none';
-  const el = document.getElementById('page-register');
-  if (el) el.classList.add('active');
-  document.body.classList.remove('home-hero-mode');
-  // Show auth modal in register mode
-  const modal = document.getElementById('authModal');
-  if (modal) modal.classList.add('show');
-  // Click register tab
-  const registerTab = document.querySelector('.auth-tab[data-mode="register"]');
-  if (registerTab) registerTab.click();
+  if (typeof openAuthModal === 'function') openAuthModal('register');
 });
 
 router.register('#/profile', async () => {
