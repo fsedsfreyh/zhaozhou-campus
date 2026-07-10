@@ -130,7 +130,18 @@ async function toggleLike(postId, btn) {
   var res = await apiPost('likes', { post_id: postId });
   if (res.data) {
     var liked = res.data.liked;
-    btn.innerHTML = '<span>' + (liked ? '❤️' : '🤍') + '</span><span>' + (parseInt(btn.querySelector('span:last-child').textContent) + (liked ? 1 : -1)) + '</span>';
+    var cur = parseInt(btn.querySelector('span:last-child').textContent) || 0;
+    var nxt = liked ? cur + 1 : Math.max(0, cur - 1);
+    btn.innerHTML = '<span>' + (liked ? '❤️' : '🤍') + '</span><span>' + nxt + '</span>';
+  }
+}
+
+// ===== 评论点赞 =====
+async function toggleCommentLike(commentId, btn) {
+  if (!currentUser) { showToast('请先登录'); openAuthModal('login'); return; }
+  var res = await apiPost('comment-like', { comment_id: commentId });
+  if (res.data) {
+    btn.innerHTML = '❤️ <span>' + (res.data.like_count || 0) + '</span>';
   }
 }
 
@@ -366,6 +377,7 @@ function renderCommentItem(c, replyList, postId) {
     '<div class="comment-content">' + escapeHtml(c.content) + '</div>' +
     '<div class="comment-actions">' +
       '<button class="reply-btn" data-comment-id="' + c.id + '" data-author-name="' + escapeHtml(commentAuthor) + '">💬 回复</button>' +
+      '<button class="comment-like-btn" onclick="toggleCommentLike(\'' + c.id + '\',this)">❤️ <span>' + (c.like_count || 0) + '</span></button>' +
     '</div>' +
     '<div id="replyForm-' + c.id + '" class="reply-form" style="display:none">' +
       '<div class="reply-input-wrap"><input class="reply-input" placeholder="回复..."><button class="comment-submit" onclick="submitReply(\'' + c.id + '\',\'' + postId + '\')">发送</button></div>' +
@@ -388,6 +400,7 @@ async function submitReply(parentId, postId) {
   showToast('回复成功');
 }
 window.submitReply = submitReply;
+window.toggleCommentLike = toggleCommentLike;
 
 async function submitComment(postId) {
   var text = document.getElementById('commentText');
