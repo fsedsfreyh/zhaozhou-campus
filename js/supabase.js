@@ -51,3 +51,15 @@ async function apiPost(endpoint, body = {}) {
   if (!res.ok) { const e = await res.json().catch(()=>({})); return { data: null, error: e.error || 'Request failed' }; }
   return { data: await res.json(), error: null };
 }
+
+/** 全局违禁词缓存 */
+let bannedWordsGlobally = [];
+
+/** 从 Edge Function 加载违禁词 */
+async function loadBannedWords() {
+  try {
+    const { data } = await apiGet('banned-words');
+    if (data && Array.isArray(data)) bannedWordsGlobally = data.map(w => w.word).filter(Boolean);
+  } catch {}
+  return bannedWordsGlobally;
+}
