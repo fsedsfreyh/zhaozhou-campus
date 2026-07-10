@@ -2,9 +2,13 @@
 const router = {
   _routes: [],
   register(pattern, handler) {
-    const keys = [];
-    const re = pattern.replace(/:(\w+)/g, (_, key) => { keys.push(key); return '([^/]+)'; });
-    this._routes.push({ re: new RegExp('^' + re.replace('#', '\\#').replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\\\(\[\^\/\]\+\\\)/g, '([^/]+)') + '$'), keys, handler });
+    // Convert #/board/:slug to regex: /route/i with named params
+    const paramNames = [];
+    const regexStr = pattern
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')  // escape special chars
+      .replace(/:(\w+)/g, (_, name) => { paramNames.push(name); return '([^/?#]+)'; })
+      .replace('#', '\\#');  // escape hash
+    this._routes.push({ re: new RegExp('^' + regexStr + '$'), paramNames, handler });
   },
   navigate(hash) {
     history.replaceState(null, '', hash);
@@ -22,13 +26,12 @@ const router = {
       const match = hash.match(route.re);
       if (match) {
         const params = {};
-        route.keys.forEach((key, i) => params[key] = match[i + 1]);
+        route.paramNames.forEach((key, i) => params[key] = match[i + 1]);
         route.handler(params).catch(err => console.error('Route error:', err));
         return;
       }
     }
     console.warn('No route matched:', hash);
-    this.navigate('#/');
   }
 };
 // ======== 应用入口 ========
