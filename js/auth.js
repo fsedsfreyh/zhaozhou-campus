@@ -50,12 +50,17 @@ function closeAuthModal() {
 
 /** 登录 */
 async function handleLogin() {
-  var email = document.getElementById('authEmail').value.trim();
+  var phone = document.getElementById('authPhone').value.trim();
   var password = document.getElementById('authPassword').value.trim();
   var errorEl = document.getElementById('authError');
   
-  if (!email || !password) {
-    errorEl.textContent = '请填写邮箱和密码';
+  if (!phone || phone.length < 11) {
+    errorEl.textContent = '请输入11位手机号';
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (!password) {
+    errorEl.textContent = '请输入密码';
     errorEl.style.display = 'block';
     return;
   }
@@ -64,12 +69,15 @@ async function handleLogin() {
   document.getElementById('authSubmit').disabled = true;
   document.getElementById('authSubmit').textContent = '登录中...';
   
+  // 手机号作为内部邮箱
+  var email = phone + '@ztzx.edu.cn';
   var { data, error } = await supabase.auth.signInWithPassword({ email, password });
   
   document.getElementById('authSubmit').disabled = false;
+  document.getElementById('authSubmit').textContent = '登录';
   
   if (error) {
-    errorEl.textContent = error.message.includes('Invalid login') ? '邮箱或密码错误' : error.message;
+    errorEl.textContent = error.message.includes('Invalid login') ? '手机号或密码错误' : error.message;
     errorEl.style.display = 'block';
     document.getElementById('authSubmit').textContent = '登录';
     return;
@@ -83,13 +91,23 @@ async function handleLogin() {
 
 /** 注册 */
 async function handleRegister() {
-  var email = document.getElementById('authEmail').value.trim();
+  var phone = document.getElementById('authPhone').value.trim();
   var password = document.getElementById('authPassword').value.trim();
   var displayName = document.getElementById('authDisplayName').value.trim();
   var errorEl = document.getElementById('authError');
   
-  if (!email || !password || !displayName) {
-    errorEl.textContent = '请填写所有必填项';
+  if (!phone || phone.length < 11) {
+    errorEl.textContent = '请输入11位手机号';
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (!password) {
+    errorEl.textContent = '请设置密码';
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (!displayName) {
+    errorEl.textContent = '请填写显示名称';
     errorEl.style.display = 'block';
     return;
   }
@@ -111,9 +129,11 @@ async function handleRegister() {
   document.getElementById('authSubmit').disabled = true;
   document.getElementById('authSubmit').textContent = '注册中...';
   
+  // 手机号作为内部邮箱
+  var email = phone + '@ztzx.edu.cn';
   var { data, error } = await supabase.auth.signUp({
     email, password,
-    options: { data: { display_name: displayName } }
+    options: { data: { display_name: displayName, phone: phone } }
   });
   
   document.getElementById('authSubmit').disabled = false;
@@ -131,6 +151,7 @@ async function handleRegister() {
     await apiPost('profiles/upsert', {
       id: data.user.id,
       display_name: displayName,
+      phone: phone,
       last_sign_in_ip: ip,
       last_sign_in_at: new Date().toISOString()
     });
