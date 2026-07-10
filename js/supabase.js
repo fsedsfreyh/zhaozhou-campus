@@ -29,7 +29,7 @@ async function apiGet(endpoint, params = {}) {
   const token = await apiGetToken();
   const query = Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : '';
   const res = await fetch(`${API_BASE}/${endpoint}${query}`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY }
+    headers: { 'Authorization': `Bearer ${token}` }
   });
   if (!res.ok) { const e = await res.json().catch(()=>({})); return { data: null, error: e.error || 'Request failed' }; }
   return { data: await res.json(), error: null };
@@ -40,7 +40,7 @@ async function apiPost(endpoint, body = {}) {
   const token = await apiGetToken();
   const res = await fetch(`${API_BASE}/${endpoint}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
     body: JSON.stringify(body)
   });
   if (!res.ok) { const e = await res.json().catch(()=>({})); return { data: null, error: e.error || 'Request failed' }; }
