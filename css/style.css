@@ -398,6 +398,8 @@ body {
 .comment-actions { margin-top: 4px; display: flex; gap: 8px; }
 .reply-btn { font-size: 0.75rem; color: var(--text-light); background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: all var(--transition); }
 .reply-btn:hover { background: var(--hover-bg); color: var(--primary); }
+.comment-like-btn { font-size: 0.75rem; color: var(--text-light); background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: all var(--transition); margin-left: auto; }
+.comment-like-btn:hover { background: var(--hover-bg); color: #e25555; }
 
 .reply-form { margin: 6px 0 6px 0; }
 .reply-input-wrap { display: flex; gap: 8px; }
