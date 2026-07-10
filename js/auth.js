@@ -132,7 +132,13 @@ async function handleAuthSubmit(e) {
     if (mode === 'login') {
       var { data, error } = await supabase.auth.signInWithPassword({ email: email, password: password });
       if (error) {
-        errorEl.textContent = error.message.includes('Invalid login') ? '手机号或密码错误' : error.message;
+        var msg = error.message;
+        if (msg.indexOf('Invalid login') > -1 || msg.indexOf('invalid credentials') > -1) {
+          msg = '手机号或密码错误';
+        } else if (msg.indexOf('not found') > -1) {
+          msg = '该手机号未注册，请先注册';
+        }
+        errorEl.textContent = msg;
         errorEl.style.display = '';
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '登录'; }
         return;
@@ -144,7 +150,18 @@ async function handleAuthSubmit(e) {
         options: { data: { display_name: displayName, phone: phone } }
       });
       if (error) {
-        errorEl.textContent = error.message;
+        // 翻译常见 Supabase Auth 错误
+        var msg = error.message;
+        if (msg.indexOf('already registered') > -1 || msg.indexOf('already exists') > -1 || msg.indexOf('user_already_exists') > -1) {
+          msg = '该手机号已被注册，请切换到「登录」';
+          // 自动切到登录页
+          setTimeout(function() { switchAuthTab('login'); document.getElementById('authError').textContent = '已有账号？请直接登录'; document.getElementById('authError').style.display = ''; }, 500);
+        } else if (msg.indexOf('password') > -1 && msg.indexOf('weak') > -1) {
+          msg = '密码强度不足，请使用6位以上的密码';
+        } else if (msg.indexOf('invalid') > -1 || msg.indexOf('bad') > -1) {
+          msg = '输入格式有误，请检查';
+        }
+        errorEl.textContent = msg;
         errorEl.style.display = '';
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '注册'; }
         return;
