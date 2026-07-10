@@ -1,16 +1,11 @@
 // ======== 简易哈希路由器 ========
 const router = {
-  _routes: [],
+  _routes: {},
   register(pattern, handler) {
-    // Convert #/board/:slug to regex: /route/i with named params
-    const paramNames = [];
-    const regexStr = pattern
-      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')  // escape special chars
-      .replace(/:(\w+)/g, (_, name) => { paramNames.push(name); return '([^/?#]+)'; })
-      .replace('#', '\\#');  // escape hash
-    this._routes.push({ re: new RegExp('^' + regexStr + '$'), paramNames, handler });
+    this._routes[pattern] = handler;
   },
   navigate(hash) {
+    if (!hash.startsWith('#')) hash = '#' + hash;
     history.replaceState(null, '', hash);
     this._resolve(hash);
   },
@@ -19,15 +14,30 @@ const router = {
     window.addEventListener('hashchange', (e) => this._resolve(location.hash));
   },
   _resolve(hash) {
-    // Hide all pages
     document.querySelectorAll('.page-container').forEach(el => el.classList.remove('active'));
-    // Find matching route
-    for (const route of this._routes) {
-      const match = hash.match(route.re);
+    // Direct match
+    if (this._routes[hash]) {
+      this._routes[hash]({}).catch(err => console.error('Route error:', err));
+      return;
+    }
+    // Param match: #/board/:slug, #/post/:id
+    for (const pattern in this._routes) {
+      if (!pattern.includes(':')) continue;
+      const parts = pattern.split('/');
+      const hashParts = hash.split('/');
+      if (parts.length !== hashParts.length) continue;
+      const params = {};
+      let match = true;
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i].startsWith(':')) {
+          params[parts[i].slice(1)] = hashParts[i];
+        } else if (parts[i] !== hashParts[i]) {
+          match = false;
+          break;
+        }
+      }
       if (match) {
-        const params = {};
-        route.paramNames.forEach((key, i) => params[key] = match[i + 1]);
-        route.handler(params).catch(err => console.error('Route error:', err));
+        this._routes[pattern](params).catch(err => console.error('Route error:', err));
         return;
       }
     }

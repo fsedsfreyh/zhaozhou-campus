@@ -128,11 +128,12 @@ async function handleRegister() {
   // 更新 profile
   try {
     var ip = await (typeof getUserIP === 'function' ? getUserIP() : Promise.resolve(''));
-    await supabase.from('profiles').update({
+    await apiPost('profiles/upsert', {
+      id: data.user.id,
       display_name: displayName,
       last_sign_in_ip: ip,
       last_sign_in_at: new Date().toISOString()
-    }).eq('id', data.user.id);
+    });
   } catch {}
   
   showToast('注册成功！欢迎加入昭州校园社区');
