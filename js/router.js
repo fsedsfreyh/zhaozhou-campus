@@ -1,86 +1,23 @@
-// ======== SPA Hash 路由器 ========
-const router = {
-  currentRoute: null,
-  routes: {},
-  history: [],
-
-  register(path, handler) {
-    this.routes[path] = handler;
-  },
-
-  async navigate(hash) {
-    if (!hash.startsWith('#')) hash = '#' + hash;
-    
-    // 隐藏所有页面
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    
-    // 记录历史
-    if (this.currentRoute) {
-      this.history.push(this.currentRoute);
-      if (this.history.length > 50) this.history.shift();
-    }
-    this.currentRoute = hash;
-    
-    // 更新 URL
-    window.location.hash = hash;
-    
-    // 查找匹配路由
-    let matched = false;
-    for (const [pattern, handler] of Object.entries(this.routes)) {
-      const params = matchRoute(pattern, hash);
-      if (params) {
-        matched = true;
-        await handler(params);
-        break;
+// 独立路由器文件（文件名唯一，浏览器不会缓存旧版本）
+window.router = {
+  _routes: {},
+  register: function(p, h) { this._routes[p] = h; },
+  navigate: function(h) { if (!h.startsWith('#')) h = '#' + h; history.replaceState(null, '', h); this._resolve(h); },
+  start: function() { this._resolve(location.hash || '#/'); var self = this; window.addEventListener('hashchange', function() { self._resolve(location.hash); }); },
+  _resolve: function(hash) {
+    document.querySelectorAll('.page-container').forEach(function(e) { e.classList.remove('active'); });
+    if (this._routes[hash]) { this._routes[hash]({}).catch(function(e) { console.error('Route error:', e.message); }); return; }
+    for (var p in this._routes) {
+      if (!p.includes(':')) continue;
+      var ps = p.split('/'), hs = hash.split('/');
+      if (ps.length !== hs.length) continue;
+      var params = {}, match = true;
+      for (var i = 0; i < ps.length; i++) {
+        if (ps[i].startsWith(':')) { params[ps[i].slice(1)] = decodeURIComponent(hs[i]); }
+        else if (ps[i] !== hs[i]) { match = false; break; }
       }
+      if (match) { this._routes[p](params).catch(function(e) { console.error('Route error:', e.message); }); return; }
     }
-    
-    if (!matched) {
-      // 默认路由
-      if (this.routes['#/']) {
-        await this.routes['#/']({});
-      }
-    }
-  },
-
-  back() {
-    if (this.history.length > 0) {
-      const prev = this.history.pop();
-      this.currentRoute = prev;
-      this.navigate(prev);
-    } else {
-      this.navigate('#/');
-    }
-  },
-
-  start() {
-    window.addEventListener('hashchange', () => {
-      const hash = window.location.hash || '#/';
-      this.navigate(hash);
-    });
-    
-    const initialHash = window.location.hash || '#/';
-    this.navigate(initialHash);
+    console.log('No route matched:', hash);
   }
 };
-
-// 路由匹配（支持 :param 和 * 通配符）
-function matchRoute(pattern, hash) {
-  if (pattern === hash) return {};
-  
-  const patternParts = pattern.split('/');
-  const hashParts = hash.split('/');
-  
-  if (patternParts.length !== hashParts.length) return null;
-  
-  const params = {};
-  for (let i = 0; i < patternParts.length; i++) {
-    if (patternParts[i].startsWith(':')) {
-      params[patternParts[i].slice(1)] = decodeURIComponent(hashParts[i] || '');
-    } else if (patternParts[i] !== hashParts[i]) {
-      return null;
-    }
-  }
-  
-  return params;
-}
