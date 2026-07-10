@@ -1,90 +1,90 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>鏄窞鏍″洯绀惧尯</title>
+  <title>昭州校园社区</title>
   <meta name="theme-color" content="#234fb0">
-  <meta name="description" content="鏄窞涓路鏍″唴涓撳睘绀惧尯">
+  <meta name="description" content="昭州中学·校内专属社区">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="css/style.css?v=18">
 </head>
 <body>
-  <!-- 鑳屾櫙绯荤粺锛堜慨鏀瑰叆鍙ｏ細鏇挎崲 campus-bg 鐨?background-image URL 涓轰綘鑷繁鐨勬牎鍥収鐗囷級 -->
+  <!-- 背景系统（修改入口：替换 campus-bg 的 background-image URL 为你自己的校园照片） -->
   <div class="bg-wrapper">
     <div class="campus-bg" id="campusBg"></div>
     <div class="bg-overlay"></div>
   </div>
 
-  <!-- 瀵艰埅鏍?-->
+  <!-- 导航栏 -->
   <nav class="navbar" id="navbar">
     <div class="nav-left">
-      <span class="nav-title" onclick="router.navigate('#/')">馃彣 鏄窞鏍″洯</span>
+      <span class="nav-title" onclick="router.navigate('#/')">🏣 昭州校园</span>
     </div>
     <div class="nav-center">
-      <span class="nav-search-icon">馃攳</span>
-      <input class="nav-search" id="searchInput" placeholder="鎼滅储甯栧瓙..." onkeydown="if(event.key==='Enter')searchPosts()">
+      <span class="nav-search-icon">🔍</span>
+      <input class="nav-search" id="searchInput" placeholder="搜索帖子..." onkeydown="if(event.key==='Enter')searchPosts()">
     </div>
     <div class="nav-right" id="navRight"></div>
   </nav>
 
-  <!-- 涓诲唴瀹?-->
+  <!-- 主内容 -->
   <main class="main-content" id="mainContent">
     <div class="loading-wrap"><div class="loading-ring"></div></div>
   </main>
 
-  <!-- 搴曢儴 Tab -->
+  <!-- 底部 Tab -->
   <div class="tabbar" id="tabbar"></div>
 
-  <!-- 鐧诲綍寮圭獥 -->
+  <!-- 登录弹窗 -->
   <div class="modal-overlay" id="authModal">
     <div class="modal-content">
       <div class="modal-header">
-        <span class="modal-title" id="authTitle">鐧诲綍</span>
-        <button class="modal-close" onclick="closeAuthModal()">鉁?/button>
+        <span class="modal-title" id="authTitle">登录</span>
+        <button class="modal-close" onclick="closeAuthModal()">✕</button>
       </div>
-      <p style="font-size:0.82rem;color:var(--text-light);margin-bottom:16px">鏄窞涓路鏍″唴涓撳睘绀惧尯</p>
+      <p style="font-size:0.82rem;color:var(--text-light);margin-bottom:16px">昭州中学·校内专属社区</p>
       <form id="authForm" data-mode="login" onsubmit="handleAuthSubmit(event)">
         <div class="modal-body">
           <div style="display:flex;gap:8px;margin-bottom:4px">
-            <button type="button" class="tag active auth-tab" data-mode="login" onclick="switchAuthTab('login')">鐧诲綍</button>
-            <button type="button" class="tag auth-tab" data-mode="register" onclick="switchAuthTab('register')">娉ㄥ唽</button>
+            <button type="button" class="tag active auth-tab" data-mode="login" onclick="switchAuthTab('login')">登录</button>
+            <button type="button" class="tag auth-tab" data-mode="register" onclick="switchAuthTab('register')">注册</button>
           </div>
           <div>
-            <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:4px">鎵嬫満鍙?/div>
-            <input class="modal-input" id="authPhone" type="tel" placeholder="11浣嶆墜鏈哄彿" maxlength="11">
+            <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:4px">手机号</div>
+            <input class="modal-input" id="authPhone" type="tel" placeholder="11位手机号" maxlength="11">
           </div>
           <div>
-            <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:4px">瀵嗙爜</div>
-            <input class="modal-input" id="authPassword" type="password" placeholder="鑷冲皯6浣嶅瘑鐮?>
+            <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:4px">密码</div>
+            <input class="modal-input" id="authPassword" type="password" placeholder="至少6位密码">
           </div>
           <div id="displayNameGroup">
-            <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:4px">鏄剧ず鍚嶇О</div>
-            <input class="modal-input" id="authDisplayName" placeholder="缁欒嚜宸卞彇涓悕瀛楀惂">
-            <div style="font-size:0.75rem;color:var(--text-light);margin-top:4px">浣犲彲浠ヤ箣鍚庡湪涓汉璁剧疆涓慨鏀?/div>
+            <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:4px">显示名称</div>
+            <input class="modal-input" id="authDisplayName" placeholder="给自己取个名字吧">
+            <div style="font-size:0.75rem;color:var(--text-light);margin-top:4px">你可以在之后在个人设置中修改</div>
           </div>
           <div id="authError" style="display:none;font-size:0.82rem;color:#ef4444;padding:6px 0"></div>
           <button type="submit" class="btn-primary" id="authSubmit">
-            <span class="btn-text">鐧诲綍</span><span class="spinner"></span>
+            <span class="btn-text">登录</span><span class="spinner"></span>
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- FAB 鍙戝笘鎸夐挳 -->
+  <!-- FAB 发帖按钮 -->
   <button id="fabCreate" onclick="router.navigate('#/create')"
     style="position:fixed;bottom:80px;right:16px;z-index:90;width:52px;height:52px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-size:1.3rem;box-shadow:0 4px 16px rgba(35,79,176,0.3);cursor:pointer;transition:all var(--transition);display:flex;align-items:center;justify-content:center"
-    onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'">鉁?/button>
+    onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'">✏</button>
   <style>
     @media (min-width: 768px) { #fabCreate { bottom: 24px; } }
   </style>
 
-  <!-- 搴曢儴瀹夊叏鍖?-->
+  <!-- 底部安全区 -->
   <div style="height:80px"></div>
 
-  <!-- JS 鏂囦欢锛堟敞鎰忥細蹇呴』鐢ㄥ閮?script 鏍囩锛孏HPages bfcache 浼氳烦杩?inline script锛?-->
+  <!-- JS 文件（注意：必须用外部 script 标签，GHPages bfcache 会跳过 inline script） -->
   <script src="js/supabase.js?v=18"></script>
   <script src="js/utils.js?v=18"></script>
   <script src="js/modules.js?v=18"></script>
