@@ -153,13 +153,13 @@ async function logoutUser() {
 /** 检查用户是否被封禁 */
 async function checkBanStatus(userId) {
   try {
-    var { data } = await supabase.from('profiles').select('is_banned, ban_reason, banned_until').eq('id', userId).single();
-    if (!data || !data.is_banned) return null;
-    if (data.banned_until && new Date(data.banned_until) < new Date()) {
-      await supabase.from('profiles').update({ is_banned: false, ban_reason: '', banned_until: null }).eq('id', userId);
+    var res = await apiGet('profile/ban-status');
+    if (!res.data || !res.data.is_banned) return null;
+    if (res.data.banned_until && new Date(res.data.banned_until) < new Date()) {
+      await apiPost('profiles/upsert', { is_banned: false, ban_reason: '', banned_until: null });
       return null;
     }
-    return data;
+    return res.data;
   } catch { return null; }
 }
 

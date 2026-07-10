@@ -23,10 +23,10 @@ async function checkAdminAuth() {
 
 // ======== 概览 ========
 async function loadDashboard() {
-  const { data: { count: postCount } } = await supabase.from('posts').select('id', { count: 'exact', head: true });
-  const { data: { count: commentCount } } = await supabase.from('comments').select('id', { count: 'exact', head: true });
-  const { data: { count: userCount } } = await supabase.from('profiles').select('id', { count: 'exact', head: true });
-  const { data: { count: reportCount } } = await supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+  const pc = await apiGet('admin/stats'); const postCount = pc.data ? pc.data.postCount : 0;
+  const cc = await apiGet('admin/stats'); const commentCount = cc.data ? cc.data.commentCount : 0;
+  const uc = await apiGet('admin/stats'); const userCount = uc.data ? uc.data.userCount : 0;
+  const rc = await apiGet('admin/stats'); const reportCount = rc.data ? rc.data.pendingReports : 0;
   
   document.getElementById('statPosts').textContent = postCount || 0;
   document.getElementById('statComments').textContent = commentCount || 0;
@@ -39,11 +39,8 @@ async function loadPosts() {
   const list = document.getElementById('adminPostList');
   list.innerHTML = '<div class="loading-spinner-wrap"><div class="loading-spinner"></div></div>';
   
-  const { data: posts } = await supabase
-    .from('posts')
-    .select('*, profiles!inner(display_name)')
-    .order('created_at', { ascending: false })
-    .limit(50);
+  const res = await apiGet('admin/posts');
+  const posts = res.data;
   
   if (!posts || posts.length === 0) {
     list.innerHTML = '<div class="empty-state">暂无帖子</div>';
@@ -78,11 +75,9 @@ async function loadPosts() {
 
 // 查看帖子发布人信息
 async function viewPostInfo(postId) {
-  const { data: post } = await supabase
-    .from('posts')
-    .select('*, profiles!inner(display_name, class_name, role, is_banned, created_at, last_sign_in_ip, last_sign_in_at)')
-    .eq('id', postId)
-    .single();
+  const res = await apiGet('admin/posts');
+  const posts = (res.data || []);
+  const post = posts.find(p => p.id === postId);
   
   if (!post) { alert('帖子不存在'); return; }
   
@@ -108,14 +103,14 @@ async function viewPostInfo(postId) {
 
 // 置顶/取消置顶
 async function togglePin(postId, isPinned) {
-  await supabase.from('posts').update({ is_pinned: !isPinned }).eq('id', postId);
+  await apiPost('admin/posts/pin', { postId });
   showToast(isPinned ? '已取消置顶' : '已置顶');
   loadPosts();
 }
 
 // 隐藏/显示
 async function toggleHide(postId, isHidden) {
-  await supabase.from('posts').update({ is_hidden: !isHidden, is_approved: isHidden }).eq('id', postId);
+  await apiPost('admin/posts/toggle-hide', { postId });
   showToast(isHidden ? '已恢复显示' : '已隐藏');
   loadPosts();
 }
@@ -124,13 +119,9 @@ async function toggleHide(postId, isHidden) {
 async function batchDelete() {
   if (!confirm('确定要批量删除选中帖子？此操作不可恢复。')) return;
   // 简化版：批量删除所有举报过的帖子
-  const { data: reports } = await supabase.from('reports').select('post_id').eq('status', 'pending');
-  if (!reports || reports.length === 0) { showToast('没有待处理的举报帖子'); return; }
-  
-  const ids = [...new Set(reports.map(r => r.post_id).filter(Boolean))];
-  await supabase.from('posts').update({ is_hidden: true, is_approved: false }).in('id', ids);
-  await supabase.from('reports').update({ status: 'resolved' }).eq('status', 'pending');
-  showToast(`已隐藏 ${ids.length} 个帖子`);
+  const { data: batchResult } = await apiPost('admin/posts/batch-delete', {});
+  if (!batchResult || batchResult.deleted === 0) { showToast('没有待处理的举报帖子'); return; }
+  showToast(`已隐藏 ${batchResult.deleted} 个帖子`);
   loadPosts();
 }
 
@@ -139,11 +130,8 @@ async function loadReports() {
   const list = document.getElementById('adminReportList');
   list.innerHTML = '<div class="loading-spinner-wrap"><div class="loading-spinner"></div></div>';
   
-  const { data: reports } = await supabase
-    .from('reports')
-    .select('*, profiles!inner(display_name), posts!left(title)')
-    .order('created_at', { ascending: false })
-    .limit(30);
+  const res = await apiGet('admin/reports');
+  const reports = res.data;
   
   if (!reports || reports.length === 0) {
     list.innerHTML = '<div class="empty-state">暂无举报记录</div>';
@@ -176,7 +164,7 @@ async function loadReports() {
 }
 
 async function resolveReport(reportId, status) {
-  await supabase.from('reports').update({ status, resolved_at: new Date().toISOString() }).eq('id', reportId);
+  await apiPost('admin/reports', { reportId, status });
   showToast(status === 'resolved' ? '已标记为已处理' : '已驳回');
   loadReports();
 }
@@ -184,7 +172,8 @@ async function resolveReport(reportId, status) {
 // ======== 违禁词管理 ========
 async function loadBannedWordsAdmin() {
   const list = document.getElementById('bannedWordList');
-  const { data: words } = await supabase.from('banned_words').select('*').order('created_at', { ascending: false });
+  const res = await apiGet('admin/banned-words');
+  const words = res.data;
   
   if (!words || words.length === 0) {
     list.innerHTML = '<div class="empty-state">暂无违禁词</div>';
@@ -216,7 +205,7 @@ async function addBannedWord() {
   const word = input.value.trim();
   if (!word) return;
   
-  const { error } = await supabase.from('banned_words').insert({ word, created_by: (await supabase.auth.getUser()).data.user?.id });
+  const { error } = (await apiPost('admin/banned-words', { action: 'add', word })).data || {};
   if (error && error.code === '23505') {
     showToast('该违禁词已存在');
   } else if (error) {
@@ -230,14 +219,14 @@ async function addBannedWord() {
 }
 
 async function toggleBannedWord(id, isActive) {
-  await supabase.from('banned_words').update({ is_active: !isActive }).eq('id', id);
+  await apiPost('admin/banned-words', { action: 'toggle', id });
   loadBannedWordsAdmin();
   loadBannedWords();
 }
 
 async function deleteBannedWord(id) {
   if (!confirm('确定删除该违禁词？')) return;
-  await supabase.from('banned_words').delete().eq('id', id);
+  await apiPost('admin/banned-words', { action: 'delete', id });
   showToast('已删除');
   loadBannedWordsAdmin();
   loadBannedWords();
@@ -246,7 +235,7 @@ async function deleteBannedWord(id) {
 // ======== 公告管理 ========
 async function loadAnnouncementsAdmin() {
   const list = document.getElementById('announcementList');
-  const { data: announcements } = await supabase.from('announcements').select('*').order('sort_order');
+  const announcements = (await apiGet('admin/announcements')).data;
   
   if (!announcements || announcements.length === 0) {
     list.innerHTML = '<div class="empty-state">暂无公告</div>';
@@ -278,11 +267,7 @@ async function addAnnouncement() {
   const content = document.getElementById('announceContent').value.trim();
   if (!title || !content) { showToast('请填写标题和内容'); return; }
   
-  await supabase.from('announcements').insert({
-    title,
-    content,
-    created_by: (await supabase.auth.getUser()).data.user?.id,
-  });
+  await apiPost('admin/announcements', { action: 'add', title, content, link_url: null });
   
   showToast('公告已发布');
   document.getElementById('announceTitle').value = '';
@@ -291,13 +276,13 @@ async function addAnnouncement() {
 }
 
 async function toggleAnnouncement(id, isActive) {
-  await supabase.from('announcements').update({ is_active: !isActive }).eq('id', id);
+  await apiPost('admin/announcements', { action: 'toggle', id });
   loadAnnouncementsAdmin();
 }
 
 async function deleteAnnouncement(id) {
   if (!confirm('确定删除该公告？')) return;
-  await supabase.from('announcements').delete().eq('id', id);
+  await apiPost('admin/announcements', { action: 'delete', id });
   loadAnnouncementsAdmin();
 }
 
@@ -306,11 +291,8 @@ async function loadUsers() {
   const list = document.getElementById('adminUserList');
   list.innerHTML = '<div class="loading-spinner-wrap"><div class="loading-spinner"></div></div>';
   
-  const { data: users } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(30);
+  const res = await apiGet('admin/users');
+  const users = res.data;
   
   if (!users || users.length === 0) {
     list.innerHTML = '<div class="empty-state">暂无用户</div>';
@@ -342,10 +324,10 @@ async function toggleBanUser(userId, isBanned) {
   if (!isBanned) {
     const reason = prompt('请输入封禁原因：');
     if (!reason) return;
-    await supabase.from('profiles').update({ is_banned: true, ban_reason: reason }).eq('id', userId);
+    await apiPost('admin/users/ban', { targetUserId: userId, ban: true, reason });
     showToast('账号已封禁');
   } else {
-    await supabase.from('profiles').update({ is_banned: false, ban_reason: '' }).eq('id', userId);
+    await apiPost('admin/users/ban', { targetUserId: userId, ban: false });
     showToast('账号已解封');
   }
   loadUsers();
