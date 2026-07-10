@@ -310,21 +310,84 @@ async function loadComments(postId) {
     }
     var block = useModule('block');
     comments = comments.filter(function(c) { return !block.isBlocked(c.user_id); });
-    list.innerHTML = comments.map(function(c) {
-      var isOwner = currentUser && currentUser.id === c.user_id;
-      var commentAuthor = c.is_private && !isOwner ? '仅楼主可见' : (c.profiles ? c.profiles.display_name : '匿名');
-      return '<div class="comment-item">' +
-        '<div class="comment-header">' +
-          '<span class="comment-author">' + escapeHtml(commentAuthor) + '</span>' +
-          '<span class="comment-time">' + formatTime(c.created_at) + '</span>' +
-        '</div>' +
-        '<div class="comment-content">' + escapeHtml(c.content) + '</div>' +
-      '</div>';
+    // Separate top-level comments and replies
+    var topLevel = comments.filter(function(c) { return !c.parent_id; });
+    var replies = {};
+    comments.forEach(function(c) {
+      if (c.parent_id) {
+        if (!replies[c.parent_id]) replies[c.parent_id] = [];
+        replies[c.parent_id].push(c);
+      }
+    });
+    list.innerHTML = topLevel.map(function(c) {
+      return renderCommentItem(c, replies[c.id] || [], postId);
     }).join('');
+    // Add click handler for reply buttons
+    document.querySelectorAll('.reply-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        var cid = this.dataset.commentId;
+        var name = this.dataset.authorName;
+        var container = document.getElementById('replyForm-' + cid);
+        if (container) {
+          container.style.display = container.style.display === 'none' ? '' : 'none';
+          if (container.style.display !== 'none') {
+            var input = container.querySelector('.reply-input');
+            if (input) { input.focus(); input.placeholder = '回复 @' + name; }
+          }
+        }
+      });
+    });
   } catch(e) {
     document.getElementById('commentList').innerHTML = '<div class="empty-state" style="padding:20px"><div class="empty-text">评论加载失败</div></div>';
   }
 }
+
+function renderCommentItem(c, replyList, postId) {
+  var isOwner = currentUser && currentUser.id === c.user_id;
+  var commentAuthor = c.is_private && !isOwner ? '仅楼主可见' : (c.profiles ? c.profiles.display_name : '匿名');
+  var repliesHtml = '';
+  if (replyList && replyList.length) {
+    repliesHtml = '<div class="comment-replies">' +
+      replyList.map(function(r) {
+        var rAuthor = r.is_private ? '仅楼主可见' : (r.profiles ? r.profiles.display_name : '匿名');
+        return '<div class="comment-reply-item">' +
+          '<span class="comment-author">' + escapeHtml(rAuthor) + '</span>' +
+          '<span class="comment-time">' + formatTime(r.created_at) + '</span>' +
+          '<div class="comment-content">' + escapeHtml(r.content) + '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }
+  return '<div class="comment-item" id="comment-' + c.id + '">' +
+    '<div class="comment-header">' +
+      '<span class="comment-author">' + escapeHtml(commentAuthor) + '</span>' +
+      '<span class="comment-time">' + formatTime(c.created_at) + '</span>' +
+    '</div>' +
+    '<div class="comment-content">' + escapeHtml(c.content) + '</div>' +
+    '<div class="comment-actions">' +
+      '<button class="reply-btn" data-comment-id="' + c.id + '" data-author-name="' + escapeHtml(commentAuthor) + '">💬 回复</button>' +
+    '</div>' +
+    '<div id="replyForm-' + c.id + '" class="reply-form" style="display:none">' +
+      '<div class="reply-input-wrap"><input class="reply-input" placeholder="回复..."><button class="comment-submit" onclick="submitReply(\'' + c.id + '\',\'' + postId + '\')">发送</button></div>' +
+    '</div>' +
+    repliesHtml +
+  '</div>';
+}
+
+async function submitReply(parentId, postId) {
+  var container = document.getElementById('replyForm-' + parentId);
+  if (!container) return;
+  var input = container.querySelector('.reply-input');
+  if (!input || !input.value.trim()) return;
+  input.disabled = true;
+  await apiPost('comments', { post_id: postId, parent_id: parentId, content: input.value.trim() });
+  input.value = '';
+  input.disabled = false;
+  container.style.display = 'none';
+  loadComments(postId);
+  showToast('回复成功');
+}
+window.submitReply = submitReply;
 
 async function submitComment(postId) {
   var text = document.getElementById('commentText');

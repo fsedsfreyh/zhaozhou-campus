@@ -124,6 +124,12 @@ function containsBannedWords(text) {
   return false;
 }
 
+/** HTML 转义 */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 /** 骨架屏生成 */
 function skeletonCards(count) {
   var html = '';
