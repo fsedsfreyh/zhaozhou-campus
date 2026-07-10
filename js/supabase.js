@@ -19,9 +19,14 @@ const API_BASE = SUPABASE_URL + '/functions/v1/api';
 /** 获取当前用户 token */
 async function apiGetToken() {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token || '';
-  } catch { return ''; }
+    // Race with timeout to prevent hanging on cold auth
+    const result = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise(r => setTimeout(() => r(null), 3000))
+    ]);
+    if (result && result.data?.session?.access_token) return result.data.session.access_token;
+  } catch {}
+  return '';
 }
 
 /** GET 请求 */

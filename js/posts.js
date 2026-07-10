@@ -166,7 +166,8 @@ function removeImage(index) {
 // 渲染板块网格
 async function renderBoards() {
   const grid = document.getElementById('boardGrid');
-  const { data: boards } = await apiGet('boards');
+  let boards;
+  try { const r = await apiGet('boards'); boards = r.data; } catch { boards = null; }
   
   if (!boards || boards.length === 0) {
     grid.innerHTML = '<div class="empty-state">暂无板块</div>';
@@ -213,7 +214,9 @@ async function renderLatestPosts() {
 // 渲染公告
 async function renderAnnouncements() {
   const track = document.getElementById('announcementTrack');
-  const { data: announcements } = await apiGet('announcements');
+  let announcements;
+  try { const r = await apiGet('announcements'); announcements = r.data; } catch { announcements = null; }
+  if (!announcements || !Array.isArray(announcements) || announcements.length === 0) { track.innerHTML = ''; return; }
   
   if (!announcements || announcements.length === 0) {
     track.innerHTML = '<span class="announcement-text">欢迎来到昭州校园社区</span>';
