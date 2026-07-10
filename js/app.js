@@ -1,6 +1,46 @@
 // 路由器已在 HTML 中内联定义（window.router）
-// 路由器已在 HTML 中内联定义（window.router）
-// 路由器已在 HTML 中内联定义（window.router）
+
+// ======== 导航滚动效果 ========
+function initNavScroll() {
+  const navbar = document.getElementById('topBar');
+  if (!navbar) return;
+  
+  function onScroll() {
+    const scrollY = window.scrollY;
+    if (scrollY > 60) {
+      navbar.classList.add('scrolled');
+      navbar.classList.remove('top-hero');
+      document.body.classList.remove('home-hero-mode');
+    } else {
+      navbar.classList.remove('scrolled');
+      navbar.classList.add('top-hero');
+      if (router && router.currentPath === '#/') {
+        document.body.classList.add('home-hero-mode');
+      }
+    }
+  }
+  
+  // 初始状态
+  if (window.scrollY > 60) {
+    navbar.classList.add('scrolled');
+  } else {
+    navbar.classList.add('top-hero');
+  }
+  
+  window.addEventListener('scroll', onScroll, { passive: true });
+}
+
+// ======== 视差滚动背景 ========
+function initParallax() {
+  const bg = document.querySelector('.campus-bg');
+  if (!bg) return;
+  window.addEventListener('scroll', () => {
+    const scrollY = window.scrollY;
+    const translateY = scrollY * 0.08;
+    bg.style.transform = `translate(-50%, -50%) translateY(${translateY}px) scale(1.05)`;
+  }, { passive: true });
+}
+
 // ======== 应用入口 ========
 
 // 注册路由
@@ -126,19 +166,11 @@ async function renderProfile() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
   
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-  
-  if (!profile) return;
+  const { data: profile } = await apiGet('profile');
   
   // 获取用户帖子数
-  const { count: postCount } = await supabase
-    .from('posts')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id);
+  const { data: countData } = await apiGet('posts/count', { user_id: user.id });
+  const postCount = countData?.count || 0;
   
   const container = document.getElementById('profileContainer');
   container.innerHTML = `
