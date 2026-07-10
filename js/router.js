@@ -1,23 +1,38 @@
-// 独立路由器文件（文件名唯一，浏览器不会缓存旧版本）
+// ===== 哈希路由 =====
 window.router = {
   _routes: {},
-  register: function(p, h) { this._routes[p] = h; },
-  navigate: function(h) { if (!h.startsWith('#')) h = '#' + h; history.replaceState(null, '', h); this._resolve(h); },
-  start: function() { this._resolve(location.hash || '#/'); var self = this; window.addEventListener('hashchange', function() { self._resolve(location.hash); }); },
+  _current: '',
+  register: function(path, handler) { this._routes[path] = handler; },
+  navigate: function(hash) {
+    if (!hash.startsWith('#')) hash = '#' + hash;
+    if (this._current === hash) return;
+    this._current = hash;
+    history.replaceState(null, '', hash);
+    this._resolve(hash);
+  },
   _resolve: function(hash) {
-    document.querySelectorAll('.page-container').forEach(function(e) { e.classList.remove('active'); });
-    if (this._routes[hash]) { this._routes[hash]({}).catch(function(e) { console.error('Route error:', e.message); }); return; }
+    hash = hash || location.hash || '#/';
+    // 精确匹配
+    if (this._routes[hash]) { this._routes[hash]({}); return; }
+    // 参数匹配 #/board/:slug, #/post/:id
     for (var p in this._routes) {
-      if (!p.includes(':')) continue;
-      var ps = p.split('/'), hs = hash.split('/');
-      if (ps.length !== hs.length) continue;
-      var params = {}, match = true;
-      for (var i = 0; i < ps.length; i++) {
-        if (ps[i].startsWith(':')) { params[ps[i].slice(1)] = decodeURIComponent(hs[i]); }
-        else if (ps[i] !== hs[i]) { match = false; break; }
+      var parts = p.split('/');
+      var hashParts = hash.split('/');
+      if (parts.length !== hashParts.length) continue;
+      var params = {};
+      var match = true;
+      for (var i = 0; i < parts.length; i++) {
+        if (parts[i].startsWith(':')) { params[parts[i].slice(1)] = hashParts[i]; }
+        else if (parts[i] !== hashParts[i]) { match = false; break; }
       }
-      if (match) { this._routes[p](params).catch(function(e) { console.error('Route error:', e.message); }); return; }
+      if (match) { this._routes[p](params); return; }
     }
-    console.log('No route matched:', hash);
+    // 默认回首页
+    if (hash !== '#/') this.navigate('#/');
+  },
+  init: function() {
+    var self = this;
+    window.addEventListener('popstate', function() { self._resolve(location.hash); });
+    this._resolve(location.hash);
   }
 };

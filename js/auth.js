@@ -1,212 +1,163 @@
-// ======== 认证模块 ========
+// ===== 认证模块 =====
+var currentUser = null;
+var currentProfile = null;
 
-/** 初始化认证模块 */
-document.addEventListener('DOMContentLoaded', function() {
-  // 登录按钮 → 打开弹窗
-  const loginBtn = document.getElementById('loginBtn');
-  if (loginBtn) loginBtn.onclick = function() { openAuthModal('login'); };
+async function updateAuth() {
+  currentUser = await getCurrentUser();
+  if (currentUser) {
+    var r = await apiGet('profile');
+    currentProfile = r.data || null;
+  } else {
+    currentProfile = null;
+  }
+  renderNav();
+  renderTabbar();
+}
 
-  // 切换登录/注册 tab
-  document.querySelectorAll('.auth-tab').forEach(function(tab) {
-    tab.addEventListener('click', function() {
-      document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.remove('active'); });
-      this.classList.add('active');
-      var mode = this.getAttribute('data-mode');
-      document.getElementById('authTitle').textContent = mode === 'login' ? '登录' : '注册';
-      document.getElementById('authSubmit').textContent = mode === 'login' ? '登录' : '注册';
-      document.getElementById('displayNameGroup').style.display = mode === 'login' ? 'none' : '';
-    });
-  });
+function renderNav() {
+  var navRight = document.getElementById('navRight');
+  if (!navRight) return;
+  if (currentUser) {
+    var name = currentProfile ? currentProfile.display_name : (currentUser.email || '用户');
+    var initial = name.charAt(0).toUpperCase();
+    navRight.innerHTML =
+      '<button class="dark-toggle" id="darkToggleBtn" onclick="toggleDarkMode()">🌓</button>' +
+      '<div class="avatar" style="background:var(--primary)" onclick="toggleUserMenu()">' + initial + '</div>' +
+      '<div id="userMenu" class="user-menu hidden" style="position:absolute;top:48px;right:16px;z-index:200;min-width:160px;background:var(--glass-bg);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:var(--radius);padding:8px 0;box-shadow:0 4px 20px rgba(0,0,0,0.08)">' +
+        '<a class="user-menu-item" href="#/my-posts" style="display:block;padding:10px 16px;font-size:0.85rem;color:var(--text);text-decoration:none;transition:all var(--transition)">📝 我的帖子</a>' +
+        '<a class="user-menu-item" href="#/history" style="display:block;padding:10px 16px;font-size:0.85rem;color:var(--text);text-decoration:none;transition:all var(--transition)">🕐 浏览记录</a>' +
+        '<a class="user-menu-item" href="#/chat" style="display:block;padding:10px 16px;font-size:0.85rem;color:var(--text);text-decoration:none;transition:all var(--transition)">💬 私信</a>' +
+        (currentProfile && currentProfile.role === 'admin' ? '<a class="user-menu-item" href="#/admin" style="display:block;padding:10px 16px;font-size:0.85rem;color:var(--text);text-decoration:none;transition:all var(--transition)">⚙️ 管理后台</a>' : '') +
+        '<div style="border-top:1px solid var(--glass-border);margin:4px 0"></div>' +
+        '<a class="user-menu-item" href="#" onclick="logoutUser();return false;" style="display:block;padding:10px 16px;font-size:0.85rem;color:#ef4444;text-decoration:none;transition:all var(--transition)">🚪 退出登录</a>' +
+      '</div>';
+  } else {
+    navRight.innerHTML = '<button class="dark-toggle" id="darkToggleBtn" onclick="toggleDarkMode()">🌓</button><button class="btn-outline" onclick="openAuthModal()" style="padding:6px 16px;font-size:0.82rem">登录</button>';
+  }
+}
 
-  // 表单提交
-  document.getElementById('authForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    var mode = document.querySelector('.auth-tab.active').getAttribute('data-mode');
-    if (mode === 'login') await handleLogin();
-    else await handleRegister();
-  });
+function toggleUserMenu() {
+  var menu = document.getElementById('userMenu');
+  if (menu) menu.classList.toggle('hidden');
+}
 
-  // 关闭弹窗
-  document.getElementById('authModalClose').onclick = function() { closeAuthModal(); };
-  document.getElementById('authModal').addEventListener('click', function(e) {
-    if (e.target === this) closeAuthModal();
-  });
+document.addEventListener('click', function(e) {
+  var menu = document.getElementById('userMenu');
+  if (menu && !menu.classList.contains('hidden') && !e.target.closest('.avatar') && !e.target.closest('.user-menu')) {
+    menu.classList.add('hidden');
+  }
 });
 
-function openAuthModal(mode) {
-  document.getElementById('authError').style.display = 'none';
+function toggleDarkMode() {
+  var dm = useModule('darkmode');
+  dm.toggle();
+}
+
+function renderTabbar() {
+  var tabbar = document.getElementById('tabbar');
+  if (!tabbar) return;
+  var hash = location.hash || '#/';
+  var tabs = [
+    { icon: '🏠', label: '首页', href: '#/' },
+    { icon: '💌', label: '表白', href: '#/board/confession' },
+    { icon: '🫢', label: '八卦', href: '#/board/gossip' },
+    { icon: '🔍', label: '失物', href: '#/board/lost' },
+    { icon: '👤', label: '我的', href: currentUser ? '#/profile' : '#/login' }
+  ];
+  tabbar.innerHTML = tabs.map(function(t) {
+    var active = hash.indexOf(t.href) === 0 || (t.href === '#/' && hash === '#/');
+    return '<button class="tab-item' + (active ? ' active' : '') + '" onclick="router.navigate(\'' + t.href + '\')">' +
+      '<span class="tab-icon">' + t.icon + '</span><span class="tab-label">' + t.label + '</span></button>';
+  }).join('');
+}
+
+window.addEventListener('hashchange', function() { renderTabbar(); });
+
+// ===== 登录弹窗 =====
+function openAuthModal(tab) {
+  tab = tab || 'login';
+  var modal = document.getElementById('authModal');
+  if (!modal) return;
+  modal.classList.add('show');
   document.getElementById('authError').textContent = '';
   document.getElementById('authSubmit').disabled = false;
-  document.getElementById('authSubmit').textContent = mode === 'login' ? '登录' : '注册';
-  document.getElementById('authTitle').textContent = mode === 'login' ? '登录' : '注册';
-  document.getElementById('displayNameGroup').style.display = mode === 'login' ? 'none' : '';
-  document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.toggle('active', t.getAttribute('data-mode') === mode); });
-  document.getElementById('authModal').classList.add('show');
+  document.getElementById('authSubmit').textContent = tab === 'login' ? '登录' : '注册';
+  switchAuthTab(tab);
 }
 
 function closeAuthModal() {
-  document.getElementById('authModal').classList.remove('show');
+  var modal = document.getElementById('authModal');
+  if (modal) modal.classList.remove('show');
 }
 
-/** 登录 */
-async function handleLogin() {
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.toggle('active', t.dataset.mode === tab); });
+  document.getElementById('authForm').dataset.mode = tab;
+  document.getElementById('authTitle').textContent = tab === 'login' ? '登录' : '注册';
+  document.getElementById('authSubmit').textContent = tab === 'login' ? '登录' : '注册';
+  document.getElementById('displayNameGroup').style.display = tab === 'login' ? 'none' : '';
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  var mode = document.getElementById('authForm').dataset.mode || 'login';
   var phone = document.getElementById('authPhone').value.trim();
   var password = document.getElementById('authPassword').value.trim();
+  var displayName = document.getElementById('authDisplayName') ? document.getElementById('authDisplayName').value.trim() : '';
   var errorEl = document.getElementById('authError');
-  
-  if (!phone || phone.length < 11) {
-    errorEl.textContent = '请输入11位手机号';
-    errorEl.style.display = 'block';
-    return;
+
+  if (!phone || phone.length < 11) { errorEl.textContent = '请输入11位手机号'; return; }
+  if (!password) { errorEl.textContent = '请输入密码'; return; }
+  if (mode === 'register') {
+    if (!displayName) { errorEl.textContent = '请填写显示名称'; return; }
+    if (password.length < 6) { errorEl.textContent = '密码至少6位'; return; }
+    if (containsBannedWords(displayName)) { errorEl.textContent = '昵称包含不当词汇'; return; }
   }
-  if (!password) {
-    errorEl.textContent = '请输入密码';
-    errorEl.style.display = 'block';
-    return;
-  }
-  
-  errorEl.style.display = 'none';
+
+  errorEl.textContent = '';
   document.getElementById('authSubmit').disabled = true;
-  document.getElementById('authSubmit').textContent = '登录中...';
-  
-  // 手机号作为内部邮箱
+  document.getElementById('authSubmit').textContent = mode === 'login' ? '登录中...' : '注册中...';
+
   var email = phone + '@ztzx.edu.cn';
-  var { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  
-  document.getElementById('authSubmit').disabled = false;
-  document.getElementById('authSubmit').textContent = '登录';
-  
-  if (error) {
-    errorEl.textContent = error.message.includes('Invalid login') ? '手机号或密码错误' : error.message;
-    errorEl.style.display = 'block';
-    document.getElementById('authSubmit').textContent = '登录';
-    return;
-  }
-  
-  showToast('登录成功');
-  closeAuthModal();
-  await updateNav();
-  router.navigate('#/');
-}
 
-/** 注册 */
-async function handleRegister() {
-  var phone = document.getElementById('authPhone').value.trim();
-  var password = document.getElementById('authPassword').value.trim();
-  var displayName = document.getElementById('authDisplayName').value.trim();
-  var errorEl = document.getElementById('authError');
-  
-  if (!phone || phone.length < 11) {
-    errorEl.textContent = '请输入11位手机号';
-    errorEl.style.display = 'block';
-    return;
-  }
-  if (!password) {
-    errorEl.textContent = '请设置密码';
-    errorEl.style.display = 'block';
-    return;
-  }
-  if (!displayName) {
-    errorEl.textContent = '请填写显示名称';
-    errorEl.style.display = 'block';
-    return;
-  }
-  
-  if (password.length < 6) {
-    errorEl.textContent = '密码至少6位';
-    errorEl.style.display = 'block';
-    return;
-  }
-  
-  // 检查违禁词
-  if (typeof containsBannedWords === 'function' && containsBannedWords(displayName)) {
-    errorEl.textContent = '昵称包含不当词汇，请修改';
-    errorEl.style.display = 'block';
-    return;
-  }
-  
-  errorEl.style.display = 'none';
-  document.getElementById('authSubmit').disabled = true;
-  document.getElementById('authSubmit').textContent = '注册中...';
-  
-  // 手机号作为内部邮箱
-  var email = phone + '@ztzx.edu.cn';
-  var { data, error } = await supabase.auth.signUp({
-    email, password,
-    options: { data: { display_name: displayName, phone: phone } }
-  });
-  
-  document.getElementById('authSubmit').disabled = false;
-  document.getElementById('authSubmit').textContent = '注册';
-  
-  if (error) {
-    errorEl.textContent = error.message;
-    errorEl.style.display = 'block';
-    return;
-  }
-  
-  // 更新 profile
-  try {
-    var ip = await (typeof getUserIP === 'function' ? getUserIP() : Promise.resolve(''));
-    await apiPost('profiles/upsert', {
-      id: data.user.id,
-      display_name: displayName,
-      phone: phone,
-      last_sign_in_ip: ip,
-      last_sign_in_at: new Date().toISOString()
-    });
-  } catch {}
-  
-  showToast('注册成功！欢迎加入昭州校园社区');
-  closeAuthModal();
-  await updateNav();
-  router.navigate('#/');
-}
-
-/** 登出 */
-async function logoutUser() {
-  await supabase.auth.signOut();
-  showToast('已退出登录');
-  await updateNav();
-  router.navigate('#/');
-}
-
-/** 检查用户是否被封禁 */
-async function checkBanStatus(userId) {
-  try {
-    var res = await apiGet('profile/ban-status');
-    if (!res.data || !res.data.is_banned) return null;
-    if (res.data.banned_until && new Date(res.data.banned_until) < new Date()) {
-      await apiPost('profiles/upsert', { is_banned: false, ban_reason: '', banned_until: null });
-      return null;
-    }
-    return res.data;
-  } catch { return null; }
-}
-
-/** 检查发帖权限 */
-async function checkPostPermission() {
-  var { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    showToast('请先登录');
-    return false;
-  }
-  var ban = await checkBanStatus(user.id);
-  if (ban) {
-    showToast('账号已被限制发帖' + (ban.ban_reason ? '：' + ban.ban_reason : ''));
-    return false;
-  }
-  return true;
-}
-
-/** FAB 点击 → 发帖 */
-function handleCreateClick() {
-  supabase.auth.getUser().then(function({ data: { user } }) {
-    if (!user) {
-      showToast('请先登录');
-      openAuthModal('login');
+  if (mode === 'login') {
+    var { data, error } = await supabase.auth.signInWithPassword({ email: email, password: password });
+    if (error) {
+      errorEl.textContent = error.message.includes('Invalid login') ? '手机号或密码错误' : error.message;
+      document.getElementById('authSubmit').disabled = false;
+      document.getElementById('authSubmit').textContent = '登录';
       return;
     }
-    router.navigate('#/create');
-  });
+    showToast('登录成功');
+  } else {
+    var { data, error } = await supabase.auth.signUp({
+      email: email, password: password,
+      options: { data: { display_name: displayName, phone: phone } }
+    });
+    if (error) {
+      errorEl.textContent = error.message;
+      document.getElementById('authSubmit').disabled = false;
+      document.getElementById('authSubmit').textContent = '注册';
+      return;
+    }
+    // 创建 profile
+    try {
+      var ip = await getUserIP();
+      await apiPost('profiles/upsert', { display_name: displayName });
+    } catch(e) {}
+    showToast('注册成功！欢迎加入');
+  }
+
+  closeAuthModal();
+  await updateAuth();
+  router.navigate('#/');
+}
+
+async function logoutUser() {
+  await supabase.auth.signOut();
+  currentUser = null;
+  currentProfile = null;
+  showToast('已退出');
+  renderNav();
+  router.navigate('#/');
 }

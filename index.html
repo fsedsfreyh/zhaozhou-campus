@@ -1,132 +1,95 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>昭州校园社区</title>
-  <link rel="stylesheet" href="css/style.css?v=10">
+  <meta name="theme-color" content="#234fb0">
+  <meta name="description" content="昭州中学·校内专属社区">
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="js/router.js?v=10"></script>
-  <script src="js/supabase.js?v=10"></script>
-  <script src="js/app.js?v=10" defer></script>
-  <script src="js/posts.js?v=10" defer></script>
-  <script src="js/comments.js?v=10" defer></script>
-  <script src="js/auth.js?v=10" defer></script>
-  <script src="js/admin.js?v=10" defer></script>
+  <link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
-  <!-- 校园背景 -->
+  <!-- 背景系统（修改入口：替换 campus-bg 的 background-image URL 为你自己的校园照片） -->
   <div class="bg-wrapper">
-    <div class="campus-bg" style="background: linear-gradient(135deg, #1a2a6c 0%, #4f6ef7 50%, #83a4d4 100%);"></div>
+    <div class="campus-bg" id="campusBg" style="background-image:url('')"></div>
     <div class="bg-overlay"></div>
   </div>
-  <div id="app">
-    <!-- 顶栏 -->
-    <nav class="navbar" id="topBar">
-      <div class="nav-inner">
-        <a href="#/" class="nav-brand">
-          <span class="nav-brand-icon">🏨</span>
-          <span class="nav-brand-text">昭州校园</span>
-        </a>
-        <div class="nav-actions" id="navRight">
-          <button class="nav-link" id="navHome" onClick="router.navigate('/')">首页</button>
-          <button class="nav-link nav-login" id="loginBtn">登录</button>
-          <div class="nav-user" id="userMenu" style="display:none">
-            <button class="nav-avatar-btn" id="userMenuBtn">
-              <span class="avatar-small" id="userAvatarText">U</span>
-            </button>
-            <div class="dropdown" id="userDropdown">
-              <a href="#/my-posts" class="dropdown-item">我的帖子</a>
-              <a href="#/bookmarks" class="dropdown-item">我的收藏</a>
-              <a href="#/profile" class="dropdown-item">个人设置</a>
-              <a href="#/admin" class="dropdown-item" id="adminLink" style="display:none">管理后台</a>
-              <div class="dropdown-divider"></div>
-              <a href="#" class="dropdown-item" id="logoutBtn">退出登录</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
 
-    <!-- 主内容区 -->
-    <main id="mainContent">
-      <div class="loading-screen" id="loadingScreen">
-        <div class="spinner"></div>
-        <p>加载中...</p>
-      </div>
-      <!-- 页面容器（路由器控制显示） -->
-      <div class="page-container" id="page-home"></div>
-      <div class="page-container" id="page-board"></div>
-      <div class="page-container" id="page-post"></div>
-      <div class="page-container" id="page-login"></div>
-      <div class="page-container" id="page-register"></div>
-      <div class="page-container" id="page-profile"></div>
-      <div class="page-container" id="page-admin"></div>
-      <div class="page-container" id="page-create"></div>
-      <div class="page-container" id="page-my-posts"></div>
-      <div class="page-container" id="page-bookmarks"></div>
-      <div class="page-container" id="page-search"></div>
-    </main>
+  <!-- 导航栏 -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-left">
+      <span class="nav-title" onclick="router.navigate('#/')">🏨 昭州校园</span>
+    </div>
+    <div class="nav-center">
+      <span class="nav-search-icon">🔍</span>
+      <input class="nav-search" id="searchInput" placeholder="搜索帖子..." onkeydown="if(event.key==='Enter')searchPosts()">
+    </div>
+    <div class="nav-right" id="navRight"></div>
+  </nav>
 
-    <!-- 浮动按钮 -->
-    <button class="fab" id="fabBtn" title="快速发布">
-      <span class="fab-icon">✏</span>
-    </button>
+  <!-- 主内容 -->
+  <main class="main-content" id="mainContent">
+    <div class="loading-wrap"><div class="loading-ring"></div></div>
+  </main>
 
-    <!-- Toast 容器 -->
-    <div class="toast-container" id="toastContainer"></div>
-  </div>
+  <!-- 底部 Tab -->
+  <div class="tabbar" id="tabbar"></div>
 
   <!-- 登录弹窗 -->
   <div class="modal-overlay" id="authModal">
-    <div class="modal auth-modal">
-      <button class="modal-close" id="authModalClose">✕</button>
-      <div class="auth-header">
-        <h2 id="authTitle">登录</h2>
-        <p class="auth-subtitle">昭州中学·校内专属社区</p>
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title" id="authTitle">登录</span>
+        <button class="modal-close" onclick="closeAuthModal()">✕</button>
       </div>
-      <form id="authForm">
-        <div class="auth-tabs">
-          <button type="button" class="auth-tab active" data-mode="login">登录</button>
-          <button type="button" class="auth-tab" data-mode="register">注册</button>
+      <p style="font-size:0.82rem;color:var(--text-light);margin-bottom:16px">昭州中学·校内专属社区</p>
+      <form id="authForm" data-mode="login" onsubmit="handleAuthSubmit(event)">
+        <div class="modal-body">
+          <div style="display:flex;gap:8px;margin-bottom:4px">
+            <button type="button" class="tag active auth-tab" data-mode="login" onclick="switchAuthTab('login')">登录</button>
+            <button type="button" class="tag auth-tab" data-mode="register" onclick="switchAuthTab('register')">注册</button>
+          </div>
+          <div>
+            <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:4px">手机号</div>
+            <input class="modal-input" id="authPhone" type="tel" placeholder="11位手机号" maxlength="11">
+          </div>
+          <div>
+            <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:4px">密码</div>
+            <input class="modal-input" id="authPassword" type="password" placeholder="至少6位密码">
+          </div>
+          <div id="displayNameGroup">
+            <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:4px">显示名称</div>
+            <input class="modal-input" id="authDisplayName" placeholder="给自己取个名字吧">
+            <div style="font-size:0.75rem;color:var(--text-light);margin-top:4px">你可以之后在个人设置中修改</div>
+          </div>
+          <div id="authError" style="display:none;font-size:0.82rem;color:#ef4444;padding:6px 0"></div>
+          <button type="submit" class="btn-primary" id="authSubmit">
+            <span class="btn-text">登录</span><span class="spinner"></span>
+          </button>
         </div>
-        <div class="form-group">
-          <label>手机号</label>
-          <input type="tel" id="authPhone" placeholder="11位手机号" pattern="[0-9]{11}" maxlength="11" required>
-        </div>
-        <div class="form-group">
-          <label>密码</label>
-          <input type="password" id="authPassword" placeholder="至少6位密码" minlength="6" required>
-        </div>
-        <div class="form-group" id="displayNameGroup" style="display:none">
-          <label>显示名称</label>
-          <input type="text" id="authDisplayName" placeholder="给自己取个名字吧">
-          <small>你可以之后在个人设置中修改</small>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block" id="authSubmit">登录</button>
-        <p class="auth-error" id="authError"></p>
       </form>
     </div>
   </div>
 
-  <!-- 帖子详情弹窗 -->
-  <div class="modal-overlay" id="postModal" style="display:none">
-    <div class="modal post-modal">
-      <button class="modal-close" id="postModalClose">✕</button>
-      <div id="postModalContent"></div>
-    </div>
-  </div>
+  <!-- FAB 发帖按钮 -->
+  <button id="fabCreate" onclick="router.navigate('#/create')"
+    style="position:fixed;bottom:80px;right:16px;z-index:90;width:52px;height:52px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-size:1.3rem;box-shadow:0 4px 16px rgba(35,79,176,0.3);cursor:pointer;transition:all var(--transition);display:flex;align-items:center;justify-content:center"
+    onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'">✏</button>
+  <style>
+    @media (min-width: 768px) { #fabCreate { bottom: 24px; } }
+  </style>
 
-  <!-- 搜索弹窗 -->
-  <div class="modal-overlay search-overlay" id="searchModal" style="display:none">
-    <div class="search-modal">
-      <div class="search-bar">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="searchInput" placeholder="搜索帖子..." autofocus>
-        <button class="search-close" id="searchClose">✕</button>
-      </div>
-      <div class="search-results" id="searchResults"></div>
-    </div>
-  </div>
+  <!-- 底部安全区 -->
+  <div style="height:80px"></div>
+
+  <!-- JS 文件（注意：必须用外部 script 标签，GHPages bfcache 会跳过 inline script） -->
+  <script src="js/supabase.js?v=14"></script>
+  <script src="js/utils.js?v=14"></script>
+  <script src="js/modules.js?v=14"></script>
+  <script src="js/router.js?v=14"></script>
+  <script src="js/auth.js?v=14"></script>
+  <script src="js/app.js?v=14"></script>
 </body>
 </html>
