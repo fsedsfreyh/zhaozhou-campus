@@ -369,7 +369,7 @@ async function renderCreate() {
         '<input class="modal-input" id="createTitle" placeholder="标题（选填）" value="' + escapeHtml(saved ? saved.title || '' : '') + '">' +
         '<textarea class="modal-textarea" id="createContent" placeholder="写点什么..." oninput="autoSaveDraft()" style="min-height:150px">' + escapeHtml(saved ? saved.content || '' : '') + '</textarea>' +
         '<div class="modal-options">' +
-          '<label class="modal-switch"><input type="checkbox" id="createAnonymous" ' + (saved && saved.anonymous !== false ? 'checked' : 'checked') + '> 匿名发布</label>' +
+          '<label class="modal-switch"><input type="checkbox" id="createAnonymous" ' + (saved && saved.anonymous ? 'checked' : '') + '> 匿名发布</label>' +
         '</div>' +
         '<div id="createTags" style="display:' + (saved && saved.board === 'gossip' ? 'block' : 'none') + '">' +
           '<div style="font-size:0.82rem;color:var(--text-light);margin-bottom:6px">标签（选填）</div>' +
