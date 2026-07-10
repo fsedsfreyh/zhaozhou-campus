@@ -11,7 +11,7 @@ async function checkAdminAuth() {
     return null;
   }
   
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  const { data: profile } = await apiGet('profile');
   if (profile?.role !== 'admin') {
     alert('无管理员权限');
     location.href = 'index.html';

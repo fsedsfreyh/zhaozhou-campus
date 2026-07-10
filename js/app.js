@@ -108,7 +108,7 @@ router.register('#/admin', async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { showToast('请先登录'); router.navigate('#/login'); return; }
   
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  const { data: profile } = await apiGet('profile');
   if (profile?.role !== 'admin') {
     showToast('无管理员权限');
     router.navigate('#/');

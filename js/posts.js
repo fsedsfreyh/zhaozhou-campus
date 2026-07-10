@@ -78,20 +78,14 @@ async function handleCreatePost() {
   }
   
   // 创建帖子
-  const { data, error } = await supabase
-    .from('posts')
-    .insert({
-      user_id: user.id,
-      board_slug: board,
-      title: filterBannedWords(title),
-      content: filterBannedWords(content),
-      images: imageUrls,
-      is_anonymous: isAnonymous,
-      comments_disabled: lockComments,
-      creator_ip: ip,
-    })
-    .select()
-    .single();
+  const { data, error } = await apiPost('posts', {
+    board_slug: board,
+    title: filterBannedWords(title),
+    content: filterBannedWords(content),
+    images: imageUrls,
+    is_anonymous: isAnonymous,
+    comments_disabled: lockComments,
+  });
   
   if (error) {
     errorEl.textContent = '发布失败：' + error.message;
@@ -172,13 +166,9 @@ function removeImage(index) {
 // 渲染板块网格
 async function renderBoards() {
   const grid = document.getElementById('boardGrid');
-  const { data: boards } = await supabase
-    .from('boards')
-    .select('*')
-    .eq('is_active', true)
-    .order('sort_order');
+  const { data: boards } = await apiGet('boards');
   
-  if (!boards) {
+  if (!boards || boards.length === 0) {
     grid.innerHTML = '<div class="empty-state">暂无板块</div>';
     return;
   }
@@ -196,18 +186,7 @@ async function renderBoards() {
 async function renderHotPosts(tab = 'daily') {
   const feed = document.getElementById('hotPostFeed');
   
-  const since = tab === 'daily' 
-    ? new Date(Date.now() - 86400000).toISOString()
-    : new Date(Date.now() - 604800000).toISOString();
-  
-  const { data: posts } = await supabase
-    .from('posts')
-    .select('*, profiles!inner(display_name, avatar_url)')
-    .eq('is_approved', true)
-    .eq('is_hidden', false)
-    .gte('created_at', since)
-    .order('like_count', { ascending: false })
-    .limit(10);
+  const { data: posts } = await apiGet('posts/hot', { period: tab });
   
   if (!posts || posts.length === 0) {
     feed.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">暂无热帖</div></div>';
@@ -221,13 +200,7 @@ async function renderHotPosts(tab = 'daily') {
 async function renderLatestPosts() {
   const feed = document.getElementById('latestPostFeed');
   
-  const { data: posts } = await supabase
-    .from('posts')
-    .select('*, profiles!inner(display_name, avatar_url)')
-    .eq('is_approved', true)
-    .eq('is_hidden', false)
-    .order('created_at', { ascending: false })
-    .limit(10);
+  const { data: posts } = await apiGet('posts', { limit: '10' });
   
   if (!posts || posts.length === 0) {
     feed.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">暂无内容，快来发布第一条动态吧</div></div>';
@@ -240,12 +213,7 @@ async function renderLatestPosts() {
 // 渲染公告
 async function renderAnnouncements() {
   const track = document.getElementById('announcementTrack');
-  const { data: announcements } = await supabase
-    .from('announcements')
-    .select('*')
-    .eq('is_active', true)
-    .order('sort_order')
-    .limit(5);
+  const { data: announcements } = await apiGet('announcements');
   
   if (!announcements || announcements.length === 0) {
     track.innerHTML = '<span class="announcement-text">欢迎来到昭州校园社区</span>';
@@ -304,11 +272,7 @@ async function loadBoardPosts(append = false) {
     feed.innerHTML = '<div class="loading-spinner-wrap"><div class="loading-spinner"></div></div>';
   }
   
-  let query = supabase
-    .from('posts')
-    .select('*, profiles!inner(display_name, avatar_url)')
-    .eq('is_approved', true)
-    .eq('is_hidden', false);
+  // Using Edge Function API
   
   if (currentBoardSlug !== 'all') {
     query = query.eq('board_slug', currentBoardSlug);
@@ -321,7 +285,7 @@ async function loadBoardPosts(append = false) {
   
   query = query.range(boardPage * 20, (boardPage + 1) * 20 - 1);
   
-  const { data: posts } = await query;
+  const { data: posts } = await apiGet('posts', { board: currentBoardSlug, limit: '20', offset: String(boardPage * 20) });
   
   if (!posts || posts.length === 0) {
     if (!append) {
@@ -355,14 +319,7 @@ async function performSearch() {
   const feed = document.getElementById('searchResults');
   feed.innerHTML = '<div class="loading-spinner-wrap"><div class="loading-spinner"></div></div>';
   
-  const { data: posts } = await supabase
-    .from('posts')
-    .select('*, profiles!inner(display_name, avatar_url)')
-    .eq('is_approved', true)
-    .eq('is_hidden', false)
-    .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
-    .order('created_at', { ascending: false })
-    .limit(20);
+  const { data: posts } = await apiGet('posts/search', { q: query });
   
   if (!posts || posts.length === 0) {
     feed.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">没有找到相关结果</div></div>';
@@ -425,18 +382,14 @@ async function toggleLike(postId, btn) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { showToast('请先登录'); return; }
   
-  const isLiked = btn.classList.toggle('liked');
-  const countEl = btn;
+  // Edge Function handles toggle internally
+  const { data: result } = await apiPost('likes', { post_id: postId });
+  const isLiked = result?.liked ?? !btn.classList.contains('liked');
+  btn.classList.toggle('liked', isLiked);
   
-  if (isLiked) {
-    await supabase.from('likes').upsert({ user_id: user.id, post_id: postId });
-    await supabase.rpc('increment_like', { post_id: postId });
-    btn.innerHTML = `❤ ${parseInt(btn.textContent.match(/\d+/)?.[0] || 0) + 1}`;
-  } else {
-    await supabase.from('likes').delete().eq('user_id', user.id).eq('post_id', postId);
-    await supabase.rpc('decrement_like', { post_id: postId });
-    btn.innerHTML = `❤ ${Math.max(0, parseInt(btn.textContent.match(/\d+/)?.[0] || 0) - 1)}`;
-  }
+  // Update count
+  const current = parseInt(btn.textContent.match(/\d+/)?.[0] || 0);
+  btn.innerHTML = `❤ ${isLiked ? current + 1 : Math.max(0, current - 1)}`;
 }
 
 // ======== 收藏 ========
@@ -444,15 +397,10 @@ async function toggleBookmark(postId, btn) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { showToast('请先登录'); return; }
   
-  const isBookmarked = btn.classList.toggle('bookmarked');
-  
-  if (isBookmarked) {
-    await supabase.from('bookmarks').upsert({ user_id: user.id, post_id: postId });
-    await supabase.rpc('increment_bookmark', { post_id: postId });
-  } else {
-    await supabase.from('bookmarks').delete().eq('user_id', user.id).eq('post_id', postId);
-    await supabase.rpc('decrement_bookmark', { post_id: postId });
-  }
+  // Edge Function handles toggle internally
+  const { data: result } = await apiPost('bookmarks', { post_id: postId });
+  const isBookmarked = result?.bookmarked ?? !btn.classList.contains('bookmarked');
+  btn.classList.toggle('bookmarked', isBookmarked);
 }
 
 // ======== 分享 ========

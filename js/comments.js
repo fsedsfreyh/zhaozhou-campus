@@ -22,8 +22,8 @@ async function renderPostDetail(postId) {
   let isLiked = false, isBookmarked = false;
   
   if (user) {
-    const { data: like } = await supabase.from('likes').select('id').eq('user_id', user.id).eq('post_id', postId).maybeSingle();
-    const { data: bookmark } = await supabase.from('bookmarks').select('id').eq('user_id', user.id).eq('post_id', postId).maybeSingle();
+    const { data: like } = await apiGet('likes/check', { post_id: postId });
+    const { data: bookmark } = await apiGet('bookmarks/check', { post_id: postId });
     isLiked = !!like;
     isBookmarked = !!bookmark;
   }
@@ -140,7 +140,7 @@ async function submitComment(postId) {
   
   const ip = await getUserIP();
   
-  const { error } = await supabase.from('comments').insert({
+  const { error } = await apiPost('comments', {
     post_id: postId,
     user_id: user.id,
     content: filterBannedWords(content),
@@ -157,7 +157,7 @@ async function submitComment(postId) {
   await loadComments(postId);
   
   // 更新评论数
-  await supabase.rpc('increment_comment', { post_id: postId });
+  // handled by Edge Function
 }
 
 // 详情页点赞
@@ -170,12 +170,12 @@ async function toggleDetailLike(postId, btn) {
   let count = parseInt(countSpan.textContent);
   
   if (isLiked) {
-    await supabase.from('likes').upsert({ user_id: user.id, post_id: postId });
-    await supabase.rpc('increment_like', { post_id: postId });
+    await apiPost('likes', { user_id: user.id, post_id: postId });
+    // handled by Edge Function
     countSpan.textContent = count + 1;
   } else {
-    await supabase.from('likes').delete().eq('user_id', user.id).eq('post_id', postId);
-    await supabase.rpc('decrement_like', { post_id: postId });
+    await apiPost('likes', { user_id: user.id, post_id: postId, _delete: true });
+    // handled by Edge Function
     countSpan.textContent = Math.max(0, count - 1);
   }
 }
@@ -188,10 +188,10 @@ async function toggleDetailBookmark(postId, btn) {
   const isBookmarked = btn.classList.toggle('bookmarked');
   
   if (isBookmarked) {
-    await supabase.from('bookmarks').upsert({ user_id: user.id, post_id: postId });
+    await apiPost('bookmarks', { user_id: user.id, post_id: postId });
     showToast('已收藏');
   } else {
-    await supabase.from('bookmarks').delete().eq('user_id', user.id).eq('post_id', postId);
+    await apiPost('bookmarks', { user_id: user.id, post_id: postId, _delete: true });
     showToast('已取消收藏');
   }
 }
@@ -204,7 +204,7 @@ async function reportPost(postId) {
   const reason = prompt('请输入举报原因：');
   if (!reason || !reason.trim()) return;
   
-  await supabase.from('reports').insert({
+  await apiPost('reports', {
     reporter_id: user.id,
     post_id: postId,
     reason: reason.trim(),
