@@ -1,14 +1,48 @@
+// ======== 简易哈希路由器 ========
+const router = {
+  _routes: [],
+  register(pattern, handler) {
+    const keys = [];
+    const re = pattern.replace(/:(\w+)/g, (_, key) => { keys.push(key); return '([^/]+)'; });
+    this._routes.push({ re: new RegExp('^' + re.replace('#', '\\#').replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\\\(\[\^\/\]\+\\\)/g, '([^/]+)') + '$'), keys, handler });
+  },
+  navigate(hash) {
+    history.replaceState(null, '', hash);
+    this._resolve(hash);
+  },
+  start() {
+    this._resolve(location.hash || '#/');
+    window.addEventListener('hashchange', (e) => this._resolve(location.hash));
+  },
+  _resolve(hash) {
+    // Hide all pages
+    document.querySelectorAll('.page-container').forEach(el => el.classList.remove('active'));
+    // Find matching route
+    for (const route of this._routes) {
+      const match = hash.match(route.re);
+      if (match) {
+        const params = {};
+        route.keys.forEach((key, i) => params[key] = match[i + 1]);
+        route.handler(params).catch(err => console.error('Route error:', err));
+        return;
+      }
+    }
+    console.warn('No route matched:', hash);
+    this.navigate('#/');
+  }
+};
 // ======== 应用入口 ========
 
 // 注册路由
 router.register('#/', async (params) => {
+  document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('page-home').classList.add('active');
   document.body.classList.add('home-hero-mode');
   
   await renderBoards();
   await renderHotPosts('daily');
   await renderLatestPosts();
-  await renderAnnouncements();
+  try { await renderAnnouncements(); } catch(e) { console.warn('Announcements failed:', e); }
 });
 
 router.register('#/board/:slug', async (params) => {
@@ -35,24 +69,35 @@ router.register('#/create', async () => {
   document.body.classList.remove('home-hero-mode');
   
   // 加载板块下拉
-  const { data: boards } = await supabase
-    .from('boards')
-    .select('slug, name, icon')
-    .eq('is_active', true)
-    .order('sort_order');
+  const { data: boards } = await apiGet('boards');
   
   const select = document.getElementById('createBoard');
-  select.innerHTML = boards.map(b => `<option value="${b.slug}">${b.icon} ${b.name}</option>`).join('');
+  if (boards && select) {
+    select.innerHTML = boards.map(b => `<option value="${b.slug}">${b.icon} ${b.name}</option>`).join('');
+  }
 });
 
 router.register('#/login', async () => {
-  document.getElementById('page-login').classList.add('active');
+  document.getElementById('loadingScreen').style.display = 'none';
+  const el = document.getElementById('page-login');
+  if (el) el.classList.add('active');
   document.body.classList.remove('home-hero-mode');
+  // Show auth modal instead
+  const modal = document.getElementById('authModal');
+  if (modal) modal.classList.add('show');
 });
 
 router.register('#/register', async () => {
-  document.getElementById('page-register').classList.add('active');
+  document.getElementById('loadingScreen').style.display = 'none';
+  const el = document.getElementById('page-register');
+  if (el) el.classList.add('active');
   document.body.classList.remove('home-hero-mode');
+  // Show auth modal in register mode
+  const modal = document.getElementById('authModal');
+  if (modal) modal.classList.add('show');
+  // Click register tab
+  const registerTab = document.querySelector('.auth-tab[data-mode="register"]');
+  if (registerTab) registerTab.click();
 });
 
 router.register('#/profile', async () => {
