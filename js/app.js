@@ -390,13 +390,13 @@ async function renderCreate() {
         '<div id="createTags" style="display:' + (saved && saved.board === 'gossip' ? 'block' : 'none') + '">' +
           '<div style="font-size:0.82rem;color:var(--text-light);margin-bottom:6px">标签（选填）</div>' +
           '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
-            '['吃瓜','爆料','求助','吐槽','分享','讨论'].map(function(t) { return '<button class="tag" onclick="toggleTag(this)">' + t + '</button>'; }).join('') +
+            ['吃瓜','爆料','求助','吐槽','分享','讨论'].map(function(t) { return '<button class="tag" onclick="toggleTag(this)">' + t + '</button>'; }).join('') +
           '</div>' +
         '</div>' +
         '<div id="createLostFields" style="display:none">' +
           '<div style="font-size:0.82rem;color:var(--text-light);margin-bottom:6px">物品分类</div>' +
           '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
-            '['书本','耳机','校服','水杯','其他'].map(function(c) { return '<button class="tag active" onclick="toggleTag(this)" style="border-color:var(--lost)">' + c + '</button>'; }).join('') +
+            ['书本','耳机','校服','水杯','其他'].map(function(c) { return '<button class="tag active" onclick="toggleTag(this)" style="border-color:var(--lost)">' + c + '</button>'; }).join('') +
           '</div>' +
         '</div>' +
         '<div class="modal-images" id="createImagePreviews"></div>' +
