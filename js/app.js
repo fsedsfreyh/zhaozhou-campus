@@ -492,9 +492,11 @@ async function submitCreatePost() {
     }
   }
 
-  var tags = Array.from(document.querySelectorAll('#createTags .tag.active, #createLostFields .tag.active')).map(function(b) { return b.textContent; });
+  var tags = Array.from(document.querySelectorAll('#createTags .tag.active')).map(function(b) { return b.textContent; });
   var lostCategory = '';
-  if (board === 'lost' && tags.length) { lostCategory = tags[0]; tags = []; }
+  if (board === 'lost') {
+    lostCategory = Array.from(document.querySelectorAll('#createLostFields .tag.active')).map(function(b) { return b.textContent; })[0] || '';
+  }
 
   var res = await apiPost('posts', {
     title: title, content: content, board_slug: board,
