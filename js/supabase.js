@@ -6,11 +6,14 @@ var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 // 创建 Supabase 客户端
 var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/** 获取当前会话 token */
+/** 获取当前会话 token（带超时） */
 async function apiGetToken() {
   try {
-    var { data } = await supabase.auth.getSession();
-    if (data && data.session) return data.session.access_token;
+    var result = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise(function(_, reject) { setTimeout(function() { reject(new Error('timeout')); }, 3000); })
+    ]);
+    if (result && result.data && result.data.session) return result.data.session.access_token;
   } catch(e) {}
   return SUPABASE_ANON_KEY;
 }

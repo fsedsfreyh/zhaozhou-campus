@@ -5,24 +5,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   var dm = useModule('darkmode');
   dm.init();
 
-  // 配置 Tailwind
-  if (window.tailwind && tailwind.config) {
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#234fb0',
-            confession: '#d882ac',
-            gossip: '#e29037',
-            lost: '#47a0c7',
-          }
-        }
-      }
-    };
-  }
-
-  // 加载违禁词
-  await loadBannedWords();
+  // 加载违禁词（不阻塞初始化）
+  loadBannedWords();
   // 更新登录状态
   await updateAuth();
   // 注册路由

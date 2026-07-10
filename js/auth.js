@@ -99,58 +99,68 @@ function switchAuthTab(tab) {
 }
 
 async function handleAuthSubmit(e) {
-  e.preventDefault();
-  var mode = document.getElementById('authForm').dataset.mode || 'login';
-  var phone = document.getElementById('authPhone').value.trim();
-  var password = document.getElementById('authPassword').value.trim();
-  var displayName = document.getElementById('authDisplayName') ? document.getElementById('authDisplayName').value.trim() : '';
-  var errorEl = document.getElementById('authError');
+  try {
+    if (e) e.preventDefault();
+    var mode = document.getElementById('authForm').dataset.mode || 'login';
+    var phoneInput = document.getElementById('authPhone');
+    var passInput = document.getElementById('authPassword');
+    var nameInput = document.getElementById('authDisplayName');
+    var errorEl = document.getElementById('authError');
+    if (!phoneInput || !passInput || !errorEl) { showToast('页面错误，请刷新重试'); return; }
+    
+    var phone = phoneInput.value.trim();
+    var password = passInput.value.trim();
+    var displayName = nameInput ? nameInput.value.trim() : '';
 
-  if (!phone || phone.length < 11) { errorEl.textContent = '请输入11位手机号'; return; }
-  if (!password) { errorEl.textContent = '请输入密码'; return; }
-  if (mode === 'register') {
-    if (!displayName) { errorEl.textContent = '请填写显示名称'; return; }
-    if (password.length < 6) { errorEl.textContent = '密码至少6位'; return; }
-    if (containsBannedWords(displayName)) { errorEl.textContent = '昵称包含不当词汇'; return; }
-  }
-
-  errorEl.textContent = '';
-  document.getElementById('authSubmit').disabled = true;
-  document.getElementById('authSubmit').textContent = mode === 'login' ? '登录中...' : '注册中...';
-
-  var email = phone + '@ztzx.edu.cn';
-
-  if (mode === 'login') {
-    var { data, error } = await supabase.auth.signInWithPassword({ email: email, password: password });
-    if (error) {
-      errorEl.textContent = error.message.includes('Invalid login') ? '手机号或密码错误' : error.message;
-      document.getElementById('authSubmit').disabled = false;
-      document.getElementById('authSubmit').textContent = '登录';
-      return;
+    if (!phone || phone.length < 11) { errorEl.textContent = '请输入11位手机号'; errorEl.style.display = ''; return; }
+    if (!password) { errorEl.textContent = '请输入密码'; errorEl.style.display = ''; return; }
+    if (mode === 'register') {
+      if (!displayName) { errorEl.textContent = '请填写显示名称'; errorEl.style.display = ''; return; }
+      if (password.length < 6) { errorEl.textContent = '密码至少6位'; errorEl.style.display = ''; return; }
+      try { if (containsBannedWords(displayName)) { errorEl.textContent = '昵称包含不当词汇'; errorEl.style.display = ''; return; } } catch(e2) {}
     }
-    showToast('登录成功');
-  } else {
-    var { data, error } = await supabase.auth.signUp({
-      email: email, password: password,
-      options: { data: { display_name: displayName, phone: phone } }
-    });
-    if (error) {
-      errorEl.textContent = error.message;
-      document.getElementById('authSubmit').disabled = false;
-      document.getElementById('authSubmit').textContent = '注册';
-      return;
-    }
-    // 创建 profile
-    try {
-      var ip = await getUserIP();
-      await apiPost('profiles/upsert', { display_name: displayName });
-    } catch(e) {}
-    showToast('注册成功！欢迎加入');
-  }
 
-  closeAuthModal();
-  await updateAuth();
-  router.navigate('#/');
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+    var submitBtn = document.getElementById('authSubmit');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = mode === 'login' ? '登录中...' : '注册中...';
+    }
+
+    var email = phone + '@ztzx.edu.cn';
+    if (mode === 'login') {
+      var { data, error } = await supabase.auth.signInWithPassword({ email: email, password: password });
+      if (error) {
+        errorEl.textContent = error.message.includes('Invalid login') ? '手机号或密码错误' : error.message;
+        errorEl.style.display = '';
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '登录'; }
+        return;
+      }
+      showToast('登录成功');
+    } else {
+      var { data, error } = await supabase.auth.signUp({
+        email: email, password: password,
+        options: { data: { display_name: displayName, phone: phone } }
+      });
+      if (error) {
+        errorEl.textContent = error.message;
+        errorEl.style.display = '';
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '注册'; }
+        return;
+      }
+      try { await apiPost('profiles/upsert', { display_name: displayName }); } catch(e2) {}
+      showToast('注册成功！欢迎加入');
+    }
+
+    closeAuthModal();
+    await updateAuth();
+    router.navigate('#/');
+  } catch(e) {
+    showToast('操作失败，请重试 (' + e.message + ')');
+    var btn = document.getElementById('authSubmit');
+    if (btn) { btn.disabled = false; btn.textContent = '重试'; }
+  }
 }
 
 async function logoutUser() {

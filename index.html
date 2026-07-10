@@ -6,9 +6,8 @@
   <title>昭州校园社区</title>
   <meta name="theme-color" content="#234fb0">
   <meta name="description" content="昭州中学·校内专属社区">
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/style.css?v=20">
+  <link rel="stylesheet" href="css/style.css?v=21">
 </head>
 <body>
   <!-- 背景系统（修改入口：替换 campus-bg 的 background-image URL 为你自己的校园照片） -->
@@ -65,7 +64,7 @@
             <div style="font-size:0.75rem;color:var(--text-light);margin-top:4px">你可以在之后在个人设置中修改</div>
           </div>
           <div id="authError" style="display:none;font-size:0.82rem;color:#ef4444;padding:6px 0"></div>
-          <button type="submit" class="btn-primary" id="authSubmit">
+          <button type="submit" class="btn-primary" id="authSubmit" onclick="handleAuthSubmit(event)">
             <span class="btn-text">登录</span><span class="spinner"></span>
           </button>
         </div>
@@ -85,11 +84,11 @@
   <div style="height:80px"></div>
 
   <!-- JS 文件（注意：必须用外部 script 标签，GHPages bfcache 会跳过 inline script） -->
-  <script src="js/supabase.js?v=20"></script>
-  <script src="js/utils.js?v=20"></script>
-  <script src="js/modules.js?v=20"></script>
-  <script src="js/router.js?v=20"></script>
-  <script src="js/auth.js?v=20"></script>
-  <script src="js/app.js?v=20"></script>
+  <script src="js/supabase.js?v=21"></script>
+  <script src="js/utils.js?v=21"></script>
+  <script src="js/modules.js?v=21"></script>
+  <script src="js/router.js?v=21"></script>
+  <script src="js/auth.js?v=21"></script>
+  <script src="js/app.js?v=21"></script>
 </body>
 </html>
