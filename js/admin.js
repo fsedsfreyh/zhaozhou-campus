@@ -23,15 +23,13 @@ async function checkAdminAuth() {
 
 // ======== 概览 ========
 async function loadDashboard() {
-  const pc = await apiGet('admin/stats'); const postCount = pc.data ? pc.data.postCount : 0;
-  const cc = await apiGet('admin/stats'); const commentCount = cc.data ? cc.data.commentCount : 0;
-  const uc = await apiGet('admin/stats'); const userCount = uc.data ? uc.data.userCount : 0;
-  const rc = await apiGet('admin/stats'); const reportCount = rc.data ? rc.data.pendingReports : 0;
+  const res = await apiGet('admin/stats');
+  const data = res.data || {};
   
-  document.getElementById('statPosts').textContent = postCount || 0;
-  document.getElementById('statComments').textContent = commentCount || 0;
-  document.getElementById('statUsers').textContent = userCount || 0;
-  document.getElementById('statReports').textContent = reportCount || 0;
+  document.getElementById('statPosts').textContent = data.posts || 0;
+  document.getElementById('statComments').textContent = data.comments || 0;
+  document.getElementById('statUsers').textContent = data.users || 0;
+  document.getElementById('statReports').textContent = 0;
 }
 
 // ======== 帖子管理 ========
