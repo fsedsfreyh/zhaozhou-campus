@@ -477,7 +477,8 @@ async function renderCreate() {
         '</div>' +
         '<div class="modal-images" id="createImagePreviews"></div>' +
         '<div style="display:flex;gap:8px">' +
-          '<label class="modal-image-add" style="cursor:pointer">+<input type="file" accept="image/*" multiple style="display:none" id="createFileInput" onchange="handleCreateImages(this.files)"></label>' +
+          '<div class="modal-image-add" onclick="document.getElementById(\'createFileInput\').click()">+</div>' +
+          '<input type="file" accept="image/*" multiple style="display:none" id="createFileInput" onchange="handleCreateImages(this.files)">' +
         '</div>' +
         '<button class="btn-primary" id="createSubmitBtn" onclick="submitCreatePost()">' +
           '<span class="btn-text">📤 发布</span><span class="spinner"></span>' +
@@ -508,6 +509,7 @@ window.toggleTag = function(btn) { btn.classList.toggle('active'); };
 window.handleCreateImages = async function(files) {
   var previews = document.getElementById('createImagePreviews');
   for (var i = 0; i < files.length && i < 9; i++) {
+    if (files[i].size > 20 * 1024 * 1024) { showToast('每张图片不能超过 20MB'); continue; }
     var compressed = await compressImage(files[i]);
     var reader = new FileReader();
     reader.onload = function(e) {
@@ -556,12 +558,8 @@ async function submitCreatePost() {
     var imgSrc = previews[i].src;
     if (imgSrc.startsWith('data:')) {
       try {
-        var blob = await fetch(imgSrc).then(function(r) { return r.blob(); });
-        var file = new File([blob], 'post_' + Date.now() + '.jpg', { type: 'image/jpeg' });
-        var { data: uploadData, error: uploadErr } = await supabase.storage.from('images').upload('posts/' + Date.now() + '_' + i + '.jpg', file);
-        if (uploadData) {
-          imageUrls.push(SUPABASE_URL + '/storage/v1/object/public/images/' + uploadData.path);
-        }
+        var res = await apiPost('images/upload', { image: imgSrc, mime_type: 'image/jpeg' });
+        if (res.data && res.data.url) imageUrls.push(res.data.url);
       } catch(e) {}
     } else {
       imageUrls.push(imgSrc);
@@ -744,7 +742,7 @@ window.submitEditName = submitEditName;
 // ===== 上传头像 =====
 async function uploadAvatar(file) {
   if (!file || !currentUser) return;
-  if (file.size > 5 * 1024 * 1024) { showToast('图片不能超过 5MB'); return; }
+  if (file.size > 10 * 1024 * 1024) { showToast('头像不能超过 10MB'); return; }
   showToast('上传中...');
   try {
     // Convert file to base64
