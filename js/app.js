@@ -84,6 +84,9 @@ function renderPostCard(p) {
   var isGossip = p.board_slug === 'gossip';
   var authorName = p.is_anonymous || isGossip ? '匿名同学' : (p.profiles ? p.profiles.display_name : '神秘人');
   var adminBadge = p.profiles && p.profiles.role === 'admin' && !p.is_anonymous && !isGossip ? '<span class="admin-badge">管理员</span>' : '';
+  var authorAvatar = (!p.is_anonymous && !isGossip && p.profiles && p.profiles.avatar_url)
+    ? '<img class="mini-avatar" src="' + p.profiles.avatar_url + '" alt="">'
+    : '';
   var imagesHtml = '';
   if (p.images && p.images.length) {
     var cls = p.images.length === 1 ? 'single' : 'multi';
@@ -101,7 +104,7 @@ function renderPostCard(p) {
 
   return '<div class="post-card" onclick="router.navigate(\'#/post/' + p.id + '\')">' +
     '<div class="post-card-header">' +
-      '<span class="post-card-author">' + escapeHtml(authorName) + adminBadge + '</span>' +
+      '<span class="post-card-author">' + authorAvatar + escapeHtml(authorName) + adminBadge + '</span>' +
       '<span class="post-card-time">' + formatTime(p.created_at) + '</span>' +
       '<span class="post-card-board ' + p.board_slug + '">' + boardName + '</span>' +
     '</div>' +
@@ -269,6 +272,9 @@ async function renderPostDetail(postId) {
   var isGossip = p.board_slug === 'gossip';
   var authorName = p.is_anonymous || isGossip ? '匿名同学' : (p.profiles ? p.profiles.display_name : '神秘人');
   var adminBadge = p.profiles && p.profiles.role === 'admin' && !p.is_anonymous && !isGossip ? '<span class="admin-badge">管理员</span>' : '';
+  var detailAvatar = (!p.is_anonymous && !isGossip && p.profiles && p.profiles.avatar_url)
+    ? '<img class="mini-avatar" src="' + p.profiles.avatar_url + '" alt="">'
+    : '';
 
   var imagesHtml = '';
   if (p.images && p.images.length) {
@@ -284,7 +290,7 @@ async function renderPostDetail(postId) {
     '<div class="post-detail">' +
     '<div class="post-card">' +
       '<div class="post-card-header">' +
-        '<span class="post-card-author">' + escapeHtml(authorName) + adminBadge + '</span>' +
+        '<span class="post-card-author">' + detailAvatar + escapeHtml(authorName) + adminBadge + '</span>' +
         '<span class="post-card-time">' + formatTime(p.created_at) + '</span>' +
         '<span class="post-card-board ' + p.board_slug + '">' + boardName + '</span>' +
       '</div>' +
@@ -359,14 +365,20 @@ function renderCommentItem(c, replyList, postId) {
   var isOwner = currentUser && currentUser.id === c.user_id;
   var commentAuthor = c.is_private && !isOwner ? '仅楼主可见' : (c.profiles ? c.profiles.display_name : '匿名');
   var commentAdminBadge = c.profiles && c.profiles.role === 'admin' && !c.is_private ? '<span class="admin-badge">管理员</span>' : '';
+  var commentAvatar = (!c.is_private && c.profiles && c.profiles.avatar_url)
+    ? '<img class="mini-avatar" src="' + c.profiles.avatar_url + '" alt="">'
+    : '';
   var repliesHtml = '';
   if (replyList && replyList.length) {
     repliesHtml = '<div class="comment-replies">' +
       replyList.map(function(r) {
         var rAuthor = r.is_private ? '仅楼主可见' : (r.profiles ? r.profiles.display_name : '匿名');
         var rAdminBadge = r.profiles && r.profiles.role === 'admin' && !r.is_private ? '<span class="admin-badge">管理员</span>' : '';
+        var rAvatar = (!r.is_private && r.profiles && r.profiles.avatar_url)
+          ? '<img class="mini-avatar mini-avatar-sm" src="' + r.profiles.avatar_url + '" alt="">'
+          : '';
         return '<div class="comment-reply-item">' +
-          '<span class="comment-author">' + escapeHtml(rAuthor) + rAdminBadge + '</span>' +
+          '<span class="comment-author">' + rAvatar + escapeHtml(rAuthor) + rAdminBadge + '</span>' +
           '<span class="comment-time">' + formatTime(r.created_at) + '</span>' +
           '<div class="comment-content">' + escapeHtml(r.content) + '</div>' +
         '</div>';
@@ -375,7 +387,7 @@ function renderCommentItem(c, replyList, postId) {
   }
   return '<div class="comment-item" id="comment-' + c.id + '">' +
     '<div class="comment-header">' +
-      '<span class="comment-author">' + escapeHtml(commentAuthor) + commentAdminBadge + '</span>' +
+      '<span class="comment-author">' + commentAvatar + escapeHtml(commentAuthor) + commentAdminBadge + '</span>' +
       '<span class="comment-time">' + formatTime(c.created_at) + '</span>' +
     '</div>' +
     '<div class="comment-content">' + escapeHtml(c.content) + '</div>' +
@@ -625,10 +637,16 @@ async function renderProfile() {
   var main = document.getElementById('mainContent');
   var name = currentProfile ? currentProfile.display_name : '用户';
   var initial = name.charAt(0).toUpperCase();
+  var avatarUrl = currentProfile && currentProfile.avatar_url ? currentProfile.avatar_url : null;
+  var avatarHtml = avatarUrl
+    ? '<img class="avatar-img" src="' + avatarUrl + '" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 12px">'
+    : '<div class="avatar" style="width:64px;height:64px;font-size:1.5rem;margin:0 auto 12px;background:var(--primary)">' + initial + '</div>';
   main.innerHTML =
     '<div class="container" style="padding-top:12px;max-width:600px">' +
     '<div class="glass-card" style="padding:24px;text-align:center">' +
-      '<div class="avatar" style="width:64px;height:64px;font-size:1.5rem;margin:0 auto 12px;background:var(--primary)">' + initial + '</div>' +
+      avatarHtml +
+      '<button class="btn-outline" onclick="document.getElementById(\'avatarInput\').click()" style="font-size:0.75rem;padding:2px 10px;margin-bottom:8px">📷 更换头像</button>' +
+      '<input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="uploadAvatar(this.files[0])">' +
       '<h3 style="font-size:1.1rem;font-weight:700">' + escapeHtml(name) + '</h3>' +
       '<p style="font-size:0.82rem;color:var(--text-light);margin-top:4px">' + (currentProfile && currentProfile.role === 'admin' ? '管理员' : '同学') + '</p>' +
     '</div>' +
@@ -722,6 +740,26 @@ async function submitEditName() {
 }
 window.showEditNameModal = showEditNameModal;
 window.submitEditName = submitEditName;
+
+// ===== 上传头像 =====
+async function uploadAvatar(file) {
+  if (!file || !currentUser) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('图片不能超过 2MB'); return; }
+  showToast('上传中...');
+  try {
+    var ext = file.name.split('.').pop() || 'jpg';
+    var path = 'avatars/' + currentUser.id + '.' + ext;
+    await supabase.storage.from('images').upload(path, file, { upsert: true, contentType: file.type });
+    var url = SUPABASE_URL + '/storage/v1/object/public/images/' + path;
+    await apiPost('profiles/upsert', { display_name: currentProfile ? currentProfile.display_name : '用户', avatar_url: url });
+    if (currentProfile) currentProfile.avatar_url = url;
+    showToast('头像已更新');
+    renderProfile();
+  } catch(e) {
+    showToast('上传失败，请重试');
+  }
+}
+window.uploadAvatar = uploadAvatar;
 
 // ===== 搜索 =====
 function renderSearch(q) {
