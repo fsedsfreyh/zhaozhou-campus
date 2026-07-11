@@ -34,7 +34,8 @@ async function loadAdminPosts() {
       '<td style="padding:8px 10px;font-size:0.75rem;color:var(--text-light)">' + formatTime(p.created_at) + '</td>' +
       '<td style="padding:8px 10px">' +
         '<button class="admin-btn admin-btn-sm" onclick="togglePin(\'' + p.id + '\',' + (p.is_pinned ? 'false' : 'true') + ')">' + (p.is_pinned ? '取消置顶' : '置顶') + '</button> ' +
-        '<button class="admin-btn admin-btn-sm ' + (p.is_hidden ? 'admin-btn-primary' : 'admin-btn-danger') + '" onclick="toggleHide(\'' + p.id + '\',' + (p.is_hidden ? 'false' : 'true') + ')">' + (p.is_hidden ? '显示' : '隐藏') + '</button>' +
+        '<button class="admin-btn admin-btn-sm ' + (p.is_hidden ? 'admin-btn-primary' : 'admin-btn-danger') + '" onclick="toggleHide(\'' + p.id + '\',' + (p.is_hidden ? 'false' : 'true') + ')">' + (p.is_hidden ? '显示' : '隐藏') + '</button> ' +
+        '<button class="admin-btn admin-btn-danger admin-btn-sm" onclick="deletePostAdmin(\'' + p.id + '\')">删除</button>' +
       '</td></tr>'; }).join('') +
     '</tbody></table>';
 }
@@ -52,6 +53,43 @@ async function toggleHide(postId, hidden) {
   loadAdminPosts();
 }
 window.toggleHide = toggleHide;
+
+async function deletePostAdmin(postId) {
+  if (!confirm('确认删除此帖子及其所有评论？此操作不可恢复！')) return;
+  await apiPost('admin/posts/delete', { post_id: postId });
+  showToast('帖子已删除');
+  loadAdminPosts();
+}
+window.deletePostAdmin = deletePostAdmin;
+
+async function loadAdminComments() {
+  var list = document.getElementById('adminCommentList');
+  if (!list) return;
+  list.innerHTML = '<div class="loading-wrap"><div class="loading-ring"></div></div>';
+  var r = await apiGet('admin/comments');
+  if (r.error) { list.innerHTML = '<div class="empty-state"><div class="empty-text">加载失败</div></div>'; return; }
+  var comments = r.data || [];
+  if (!comments.length) { list.innerHTML = '<div class="empty-state"><div class="empty-text">暂无评论</div></div>'; return; }
+  list.innerHTML =
+    '<table style="width:100%;font-size:0.82rem;border-collapse:collapse">' +
+    '<thead><tr style="background:var(--glass-bg)"><th style="padding:8px 10px;text-align:left">内容</th><th style="padding:8px 10px;text-align:left">帖子</th><th style="padding:8px 10px;text-align:left">时间</th><th style="padding:8px 10px;text-align:left">操作</th></tr></thead><tbody>' +
+    comments.map(function(c) { return '<tr style="border-bottom:1px solid var(--glass-border)">' +
+      '<td style="padding:8px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(c.content) + '</td>' +
+      '<td style="padding:8px 10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(c.post_title || '') + '</td>' +
+      '<td style="padding:8px 10px;font-size:0.75rem;color:var(--text-light)">' + formatTime(c.created_at) + '</td>' +
+      '<td style="padding:8px 10px">' +
+        '<button class="admin-btn admin-btn-danger admin-btn-sm" onclick="deleteCommentAdmin(\'' + c.id + '\',\'' + c.post_id + '\')">删除</button>' +
+      '</td></tr>'; }).join('') +
+    '</tbody></table>';
+}
+
+async function deleteCommentAdmin(commentId, postId) {
+  if (!confirm('确认删除此评论？')) return;
+  await apiPost('admin/comments/delete', { comment_id: commentId, post_id: postId });
+  showToast('评论已删除');
+  loadAdminComments();
+}
+window.deleteCommentAdmin = deleteCommentAdmin;
 
 async function loadAdminReports() {
   var list = document.getElementById('adminReportList');
@@ -162,10 +200,10 @@ function switchTab(tab) {
   document.querySelectorAll('.admin-nav-item').forEach(function(n) { n.classList.remove('active'); });
   document.getElementById('section-' + tab).classList.add('active');
   document.querySelectorAll('.admin-nav-item').forEach(function(n) {
-    var labels = { dashboard: '概览', posts: '帖子', reports: '举报', banned: '违禁词', announcements: '公告' };
+    var labels = { dashboard: '概览', posts: '帖子', reports: '举报', banned: '违禁词', announcements: '公告', comments: '评论' };
     if (n.textContent.includes(labels[tab])) n.classList.add('active');
   });
-  var fns = { dashboard: loadDashboard, posts: loadAdminPosts, reports: loadAdminReports, banned: loadBannedWordsAdmin, announcements: loadAnnouncementsAdmin };
+  var fns = { dashboard: loadDashboard, posts: loadAdminPosts, reports: loadAdminReports, banned: loadBannedWordsAdmin, announcements: loadAnnouncementsAdmin, comments: loadAdminComments };
   if (fns[tab]) fns[tab]();
 }
 window.switchTab = switchTab;
