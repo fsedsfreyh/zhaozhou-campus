@@ -113,7 +113,9 @@ window.deleteBannedWord = deleteBannedWord;
 
 async function loadAnnouncementsAdmin() {
   var list = document.getElementById('announcementList');
+  if (!list) return;
   var r = await apiGet('admin/announcements');
+  if (r.error) { list.innerHTML = '<div class="empty-state"><div class="empty-text">加载失败</div></div>'; return; }
   var items = r.data || [];
   if (!items.length) { list.innerHTML = '<div class="empty-state"><div class="empty-text">暂无公告</div></div>'; return; }
   list.innerHTML = items.map(function(a) { return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:8px;margin-bottom:6px">' +
@@ -128,11 +130,16 @@ async function addAnnouncement() {
   var title = document.getElementById('announceTitle').value.trim();
   var content = document.getElementById('announceContent').value.trim();
   if (!title || !content) { showToast('请填写完整'); return; }
-  await apiPost('admin/announcements/add', { title: title, content: content });
-  document.getElementById('announceTitle').value = '';
-  document.getElementById('announceContent').value = '';
-  showToast('公告已发布');
-  loadAnnouncementsAdmin();
+  try {
+    var r = await apiPost('admin/announcements/add', { title: title, content: content });
+    if (r.error) { showToast('发布失败: ' + JSON.stringify(r.error)); return; }
+    document.getElementById('announceTitle').value = '';
+    document.getElementById('announceContent').value = '';
+    showToast('公告已发布');
+    loadAnnouncementsAdmin();
+  } catch(e) {
+    showToast('发布失败，请重试');
+  }
 }
 window.addAnnouncement = addAnnouncement;
 
