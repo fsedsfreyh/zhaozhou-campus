@@ -744,20 +744,31 @@ window.submitEditName = submitEditName;
 // ===== 上传头像 =====
 async function uploadAvatar(file) {
   if (!file || !currentUser) return;
-  if (file.size > 2 * 1024 * 1024) { showToast('图片不能超过 2MB'); return; }
+  if (file.size > 5 * 1024 * 1024) { showToast('图片不能超过 5MB'); return; }
   showToast('上传中...');
   try {
-    var ext = file.name.split('.').pop() || 'jpg';
-    var path = 'avatars/' + currentUser.id + '.' + ext;
-    await supabase.storage.from('images').upload(path, file, { upsert: true, contentType: file.type });
-    var url = SUPABASE_URL + '/storage/v1/object/public/images/' + path;
-    await apiPost('profiles/upsert', { display_name: currentProfile ? currentProfile.display_name : '用户', avatar_url: url });
-    if (currentProfile) currentProfile.avatar_url = url;
-    showToast('头像已更新');
-    renderProfile();
+    // Convert file to base64
+    var base64 = await fileToBase64(file);
+    var res = await apiPost('avatar/upload', { image: base64, mime_type: file.type });
+    if (res.data && res.data.url) {
+      if (currentProfile) currentProfile.avatar_url = res.data.url;
+      showToast('头像已更新');
+      renderProfile();
+    } else {
+      showToast('上传失败：' + JSON.stringify(res.error));
+    }
   } catch(e) {
     showToast('上传失败，请重试');
+    console.error('Avatar upload error:', e);
   }
+}
+function fileToBase64(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function() { resolve(reader.result); };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 window.uploadAvatar = uploadAvatar;
 
