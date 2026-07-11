@@ -83,6 +83,7 @@ function renderPostCard(p) {
   var boardColor = getBoardColor(p.board_slug);
   var isGossip = p.board_slug === 'gossip';
   var authorName = p.is_anonymous || isGossip ? '匿名同学' : (p.profiles ? p.profiles.display_name : '神秘人');
+  var adminBadge = p.profiles && p.profiles.role === 'admin' && !p.is_anonymous && !isGossip ? '<span class="admin-badge">管理员</span>' : '';
   var imagesHtml = '';
   if (p.images && p.images.length) {
     var cls = p.images.length === 1 ? 'single' : 'multi';
@@ -100,7 +101,7 @@ function renderPostCard(p) {
 
   return '<div class="post-card" onclick="router.navigate(\'#/post/' + p.id + '\')">' +
     '<div class="post-card-header">' +
-      '<span class="post-card-author">' + escapeHtml(authorName) + '</span>' +
+      '<span class="post-card-author">' + escapeHtml(authorName) + adminBadge + '</span>' +
       '<span class="post-card-time">' + formatTime(p.created_at) + '</span>' +
       '<span class="post-card-board ' + p.board_slug + '">' + boardName + '</span>' +
     '</div>' +
@@ -267,6 +268,7 @@ async function renderPostDetail(postId) {
   var boardName = getBoardName(p.board_slug);
   var isGossip = p.board_slug === 'gossip';
   var authorName = p.is_anonymous || isGossip ? '匿名同学' : (p.profiles ? p.profiles.display_name : '神秘人');
+  var adminBadge = p.profiles && p.profiles.role === 'admin' && !p.is_anonymous && !isGossip ? '<span class="admin-badge">管理员</span>' : '';
 
   var imagesHtml = '';
   if (p.images && p.images.length) {
@@ -282,7 +284,7 @@ async function renderPostDetail(postId) {
     '<div class="post-detail">' +
     '<div class="post-card">' +
       '<div class="post-card-header">' +
-        '<span class="post-card-author">' + escapeHtml(authorName) + '</span>' +
+        '<span class="post-card-author">' + escapeHtml(authorName) + adminBadge + '</span>' +
         '<span class="post-card-time">' + formatTime(p.created_at) + '</span>' +
         '<span class="post-card-board ' + p.board_slug + '">' + boardName + '</span>' +
       '</div>' +
@@ -356,13 +358,15 @@ async function loadComments(postId) {
 function renderCommentItem(c, replyList, postId) {
   var isOwner = currentUser && currentUser.id === c.user_id;
   var commentAuthor = c.is_private && !isOwner ? '仅楼主可见' : (c.profiles ? c.profiles.display_name : '匿名');
+  var commentAdminBadge = c.profiles && c.profiles.role === 'admin' && !c.is_private ? '<span class="admin-badge">管理员</span>' : '';
   var repliesHtml = '';
   if (replyList && replyList.length) {
     repliesHtml = '<div class="comment-replies">' +
       replyList.map(function(r) {
         var rAuthor = r.is_private ? '仅楼主可见' : (r.profiles ? r.profiles.display_name : '匿名');
+        var rAdminBadge = r.profiles && r.profiles.role === 'admin' && !r.is_private ? '<span class="admin-badge">管理员</span>' : '';
         return '<div class="comment-reply-item">' +
-          '<span class="comment-author">' + escapeHtml(rAuthor) + '</span>' +
+          '<span class="comment-author">' + escapeHtml(rAuthor) + rAdminBadge + '</span>' +
           '<span class="comment-time">' + formatTime(r.created_at) + '</span>' +
           '<div class="comment-content">' + escapeHtml(r.content) + '</div>' +
         '</div>';
@@ -371,7 +375,7 @@ function renderCommentItem(c, replyList, postId) {
   }
   return '<div class="comment-item" id="comment-' + c.id + '">' +
     '<div class="comment-header">' +
-      '<span class="comment-author">' + escapeHtml(commentAuthor) + '</span>' +
+      '<span class="comment-author">' + escapeHtml(commentAuthor) + commentAdminBadge + '</span>' +
       '<span class="comment-time">' + formatTime(c.created_at) + '</span>' +
     '</div>' +
     '<div class="comment-content">' + escapeHtml(c.content) + '</div>' +
@@ -629,6 +633,7 @@ async function renderProfile() {
       '<p style="font-size:0.82rem;color:var(--text-light);margin-top:4px">' + (currentProfile && currentProfile.role === 'admin' ? '管理员' : '同学') + '</p>' +
     '</div>' +
     '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">' +
+      '<button onclick="showEditNameModal()" class="glass-card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:none;cursor:pointer;text-align:left;color:var(--text);width:100%">✏️ <span>修改昵称</span></button>' +
       '<a href="#/my-posts" class="glass-card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;text-decoration:none;color:var(--text)">📝 <span>我的帖子</span></a>' +
       '<a href="#/history" class="glass-card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;text-decoration:none;color:var(--text)">🕐 <span>浏览记录</span></a>' +
       '<a href="#/chat" class="glass-card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;text-decoration:none;color:var(--text)">💬 <span>私信</span></a>' +
@@ -690,6 +695,33 @@ function clearHistory() {
   showToast('浏览记录已清空');
 }
 window.clearHistory = clearHistory;
+
+// ===== 修改昵称 =====
+function showEditNameModal() {
+  var curName = currentProfile ? currentProfile.display_name : '';
+  var html = '<div style="display:flex;flex-direction:column;gap:12px">' +
+    '<input type="text" id="editNameInput" class="modal-input" placeholder="输入新昵称" value="' + escapeHtml(curName) + '" maxlength="20">' +
+    '<button class="btn-primary" onclick="submitEditName()" style="justify-content:center">保存</button>' +
+    '</div>';
+  showCustomModal('修改昵称', html);
+  setTimeout(function() { var inp = document.getElementById('editNameInput'); if (inp) inp.focus(); }, 100);
+}
+async function submitEditName() {
+  var inp = document.getElementById('editNameInput');
+  if (!inp || !inp.value.trim()) { showToast('昵称不能为空'); return; }
+  var name = inp.value.trim();
+  try {
+    await apiPost('profiles/upsert', { display_name: name });
+    if (currentProfile) currentProfile.display_name = name;
+    showToast('昵称已更新');
+    closeCustomModal();
+    renderProfile();
+  } catch(e) {
+    showToast('修改失败，请重试');
+  }
+}
+window.showEditNameModal = showEditNameModal;
+window.submitEditName = submitEditName;
 
 // ===== 搜索 =====
 function renderSearch(q) {
