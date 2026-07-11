@@ -41,6 +41,7 @@
       <button class="admin-nav-item" onclick="switchTab('reports')">🪄 举报</button>
       <button class="admin-nav-item" onclick="switchTab('banned')">🚫 违禁词</button>
       <button class="admin-nav-item" onclick="switchTab('announcements')">📢 公告</button>
+      <button class="admin-nav-item" onclick="switchTab('comments')">💬 评论</button>
       <hr style="border:none;border-top:1px solid var(--glass-border);margin:8px 12px">
       <button class="admin-nav-item" onclick="location.href='index.html'">← 返回</button>
     </nav>
@@ -78,6 +79,10 @@
           <button class="admin-btn admin-btn-primary" onclick="addAnnouncement()">发布公告</button>
         </div>
         <div id="announcementList"></div>
+      </div>
+      <div class="admin-section" id="section-comments">
+        <h2 style="margin-bottom:12px">💬 评论管理</h2>
+        <div id="adminCommentList"></div>
       </div>
     </main>
   </div>
